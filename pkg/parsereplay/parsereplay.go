@@ -49,16 +49,32 @@ func GetOts(replay string, player int) string {
 	return ots
 }
 
-func GetPlayerByName(replay string, playerName string) int {
+func GetPlayerIdByName(replay string, playerName string) int {
 	player := 0
-	playerstring:= "|player|p1|"
+	playerstring := "|player|p1|"
 	playerstring += playerName
-	
-	if(searchLineWithPrefix(replay, playerName) == "") {
+
+	if searchLineWithPrefix(replay, playerName) == "" {
 		player = 2
-	} else { 
+	} else {
 		player = 1
 	}
+
+	return player
+}
+
+func GetPlayerNameById(replay string, id int) string {
+	player := ""
+	if id == 1 {
+		player = searchLineWithPrefix(replay, "|player|p1|")
+		player = strings.ReplaceAll(player, "|player|p1|", "")
+	} else {
+		player = searchLineWithPrefix(replay, "|player|p2|")
+		player = strings.ReplaceAll(player, "|player|p2|", "")
+	}
+
+	temp := strings.Split(player, "|")
+	player = temp[0]
 
 	return player
 }
@@ -75,8 +91,6 @@ func parsePaste(team Team) string {
 	}
 	return paste
 }
-
-
 
 func parseTeam(teamStr string) Team {
 	pokemonStrs := strings.Split(teamStr, "]")
@@ -125,4 +139,11 @@ func parsePokemon(pokemonStr string) Pokemon {
 		Level:    level,
 		TeraType: teraType,
 	}
+}
+
+func WhoWon(replay string) int {
+	winner := searchLineWithPrefix(replay, "|win|")
+	winner = strings.ReplaceAll(winner, "|win|", "")
+
+	return GetPlayerIdByName(replay, winner)
 }
