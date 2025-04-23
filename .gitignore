@@ -20,3 +20,8 @@
 # Go workspace file
 go.work
 run.bat
+
+# frontend
+build/bin
+node_modules
+frontend/dist
