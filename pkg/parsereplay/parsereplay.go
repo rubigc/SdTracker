@@ -1,7 +1,7 @@
 package parsereplay
 
 import (
-	"SdTracker/backend/pkg/sddata"
+	"SdTracker/pkg/sddata"
 	"fmt"
 	"strings"
 )
