@@ -20,7 +20,26 @@ type Team struct {
 	Pokemons []Pokemon
 }
 
-func searchLineWithPrefix(text, prefix string) string {
+func removeDuplicates(input []string) []string {
+	var result []string
+
+	for _, str := range input {
+		skip := false
+		for _, existing := range result {
+			if strings.Contains(str, existing) || strings.Contains(existing, str) {
+				skip = true
+				break
+			}
+		}
+		if !skip {
+			result = append(result, str)
+		}
+	}
+
+	return result
+}
+
+func searchLineWithPrefix(text string, prefix string) string {
 	lines := strings.Split(text, "\n")
 	for _, line := range lines {
 		if strings.HasPrefix(line, prefix) {
@@ -28,6 +47,19 @@ func searchLineWithPrefix(text, prefix string) string {
 		}
 	}
 	return ""
+}
+
+func findAllLinesWithSubstring(text string, substr string) []string {
+	lines := strings.Split(text, "\n")
+	var results []string
+
+	for _, line := range lines {
+		if strings.Contains(line, substr) {
+			results = append(results, line)
+		}
+	}
+
+	return results
 }
 
 func GetOts(replay string, player int) string {
@@ -147,3 +179,63 @@ func WhoWon(replay string) int {
 
 	return GetPlayerIdByName(replay, winner)
 }
+
+func GetLeadFromPlayerId(replay string, player int) []string {
+	var lead []string
+	var l1, l2 string
+	var searchString string
+
+	if player == 1 {
+		searchString = "|switch|p1"
+	} else {
+		searchString = "|switch|p2"
+	}
+
+	l1 = searchLineWithPrefix(replay, searchString+"a:")
+	l2 = searchLineWithPrefix(replay, searchString+"b:")
+
+	l1 = strings.Split(l1, "|")[3]
+	l1 = strings.Split(l1, ",")[0]
+	l2 = strings.Split(l2, "|")[3]
+	l2 = strings.Split(l2, ",")[0]
+
+	lead = append(lead, l1)
+	lead = append(lead, l2)
+
+	return lead
+}
+
+func GetAllPlayedPokemonFromPlayerId(replay string, player int) []string {
+	var playedPokemon []string
+	var searchString string
+
+	if player == 1 {
+		searchString = "|switch|p1"
+	} else {
+		searchString = "|switch|p2"
+	}
+
+	unparsedList := findAllLinesWithSubstring(replay, searchString)
+
+	for x := range unparsedList {
+		unparsedList[x] = strings.Split(unparsedList[x], "|")[3]
+		unparsedList[x] = strings.Split(unparsedList[x], ",")[0]
+	}
+	playedPokemon = removeDuplicates(unparsedList)
+
+	return playedPokemon
+}
+
+func GetGameNumber(replay string) int {
+	checkString := strings.Index(replay, ">Game 1<")
+	if checkString != -1 {
+	 	return 1	
+	}
+	checkString = strings.Index(replay, ">Game 2<")
+	if checkString != -1 {
+		return 2
+	}
+	return 3
+}
+
+
