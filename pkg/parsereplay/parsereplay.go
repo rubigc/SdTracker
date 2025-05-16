@@ -3,6 +3,7 @@ package parsereplay
 import (
 	"SdTracker/pkg/sddata"
 	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -238,4 +239,12 @@ func GetGameNumber(replay string) int {
 	return 3
 }
 
-
+func GetMatchUUID(replay string) string {
+	parseLine := searchLineWithPrefix(replay, "|uhtml|bestof|<h2><strong>Game ")
+	re := regexp.MustCompile(`game-bestof3-[^"]*-(\d+-[a-z0-9]+)`)
+	match := re.FindStringSubmatch(parseLine)
+	if len(match) > 1 {
+		return match[1]
+	}
+	return ""
+}

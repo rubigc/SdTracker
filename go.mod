@@ -4,6 +4,8 @@ go 1.23.0
 
 require github.com/chromedp/chromedp v0.13.1
 
+require github.com/mattn/go-sqlite3 v1.14.28
+
 require (
 	github.com/chromedp/cdproto v0.0.0-20250222051814-50c6cb17f10a // direct
 	github.com/chromedp/sysutil v1.1.0 // indirect
