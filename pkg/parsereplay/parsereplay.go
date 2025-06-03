@@ -84,10 +84,9 @@ func GetOts(replay string, player int) string {
 
 func GetPlayerIdByName(replay string, playerName string) int {
 	player := 0
-	playerstring := "|player|p1|"
-	playerstring += playerName
+	playerstring := "|player|p1|" + playerName
 
-	if searchLineWithPrefix(replay, playerName) == "" {
+	if searchLineWithPrefix(replay, playerstring) == "" {
 		player = 2
 	} else {
 		player = 1
@@ -174,10 +173,9 @@ func parsePokemon(pokemonStr string) Pokemon {
 	}
 }
 
-func WhoWon(replay string) int {
+func GetWhoWonId(replay string) int {
 	winner := searchLineWithPrefix(replay, "|win|")
 	winner = strings.ReplaceAll(winner, "|win|", "")
-
 	return GetPlayerIdByName(replay, winner)
 }
 
@@ -247,4 +245,20 @@ func GetMatchUUID(replay string) string {
 		return match[1]
 	}
 	return ""
+}
+
+func GetTera(replay string, playerId int) string{
+	var parseLine string
+	if(playerId == 1) {
+		parseLine = searchLineWithPrefix(replay, "|-terastallize|p1")
+	}else {
+		parseLine = searchLineWithPrefix(replay, "|-terastallize|p2")
+	}
+	if len(parseLine) > 1 {
+		parseLine = strings.Split(parseLine, "|")[2]
+		parseLine = strings.Split(parseLine, ":")[1]
+		parseLine = strings.ReplaceAll(parseLine, " ", "")
+		return parseLine
+	}
+	return "-"
 }

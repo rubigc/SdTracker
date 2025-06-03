@@ -30,25 +30,20 @@ func main() {
 		match_id INTEGER,
 		game_number INTEGER,
 		match_uuid TEXT,
-		winner INTEGER,
+		winner TEXT,
+		replay TEXT,
 		FOREIGN KEY (match_id) REFERENCES matches(id)
 	);
 
-	CREATE TABLE IF NOT EXISTS pokemon (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT UNIQUE,
-		teraType TEXT
-	);
-
 	CREATE TABLE IF NOT EXISTS game_players (
-		game_id INTEGER,
-		player_number INTEGER,
+		game_id INTEGER NOT NULL,
+		player_name TEXT NOT NULL,
 		team_pokemon TEXT,
 		lead_pokemon TEXT,
-		tera_used INTEGER,
-		PRIMARY KEY (game_id, player_number),
-		FOREIGN KEY (game_id) REFERENCES games(id),
-		FOREIGN KEY (tera_used) REFERENCES pokemon(id)
+		tera_used TEXT,
+		ots TEXT,
+		PRIMARY KEY (game_id, player_name),
+		FOREIGN KEY (game_id) REFERENCES games(id)
 	);
 	`
 
