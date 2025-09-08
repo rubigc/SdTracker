@@ -13,10 +13,34 @@
 2. Open terminal in the extracted folder
 3. Run either option below:
 
-##### Option 1: Using docker-compose (recommended)
+##### Option 1: Using the provided scripts (recommended)
+
+###### For macOS/Linux:
+1. Make the script executable:
 ```bash
-docker-compose up -d
+chmod +x run_docker_mac_linux.sh
 ```
+2. Run the script:
+```bash
+./run_docker_mac_linux.sh
+```
+
+###### For Windows:
+1. (First time only) Allow script execution:
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+```
+2. Run the script:
+```powershell
+.\run_docker_windows.ps1
+```
+
+Both scripts will:
+- Prompt you to enter your Showdown username
+- Start all required containers automatically
+- Show the frontend access URL (http://localhost:3000) when done
+
+> Note: On Windows, you may need to run PowerShell as Administrator for the first execution policy change.
 
 ##### Option 2: Manual Docker commands
 ```bash

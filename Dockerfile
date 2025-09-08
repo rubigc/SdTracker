@@ -48,7 +48,7 @@ fi\n\
 \n\
 echo "Starting services..."\n\
 node /app/backend/server.js &\n\
-./sdtracker\n\
+./sdtracker $SHOWDOWN_USERNAME\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
 EXPOSE 8089 3000 3001

@@ -11,4 +11,6 @@ services:
       - ./database:/app/database
     restart: unless-stopped
     environment:
+      - SHOWDOWN_USERNAME=${SHOWDOWN_USERNAME:-default_user}
+    environment:
       - DB_PATH=/app/database/pokemon_stats.db
