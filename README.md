@@ -1,110 +1,95 @@
 # SdTracker
 
-## Docker Setup
+A Program to track Showdown games and ELO inspired by Poker hand trackers.
+
+## Quick Start (Recommended - No Docker Required)
 
 ### Prerequisites
-- Docker installed
-- Docker Compose (optional but recommended)
+- **Go 1.23+** 
+- **Node.js 18+**
+- **npm 8+**
 
-### Quick Start with Docker
+### Quick Start by Operating System
 
-#### For macOS/Linux:
-1. Download and extract the repository
-2. Open terminal in the extracted folder
-3. Run either option below:
-
-##### Option 1: Using the provided scripts (recommended)
-
-###### For macOS/Linux:
-1. Make the script executable:
+#### For Linux:
 ```bash
-chmod +x run_docker_mac_linux.sh
+# Make the start script executable
+chmod +x start.sh
+
+# Run the application
+./start.sh
 ```
-2. Run the script:
+
+#### For macOS:
 ```bash
-./run_docker_mac_linux.sh
-```
+# Option 1: Using the terminal
+chmod +x start.command
+./start.command
 
-###### For Windows:
-1. (First time only) Allow script execution:
-```powershell
-Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-```
-2. Run the script:
-```powershell
-.\run_docker_windows.ps1
-```
-
-Both scripts will:
-- Prompt you to enter your Showdown username
-- Start all required containers automatically
-- Show the frontend access URL (http://localhost:3000) when done
-
-> Note: On Windows, you may need to run PowerShell as Administrator for the first execution policy change.
-
-##### Option 2: Manual Docker commands
-```bash
-docker build -t sdtracker .
-mkdir database  # Creates directory for persistent data
-docker run -d \
-  -p 8089:8080 \
-  -p 3000:3000 \
-  -p 3001:3001 \
-  -v $(pwd)/database:/app/database \
-  --name sdtracker \
-  sdtracker
+# Option 2: Double-click the start.command file (recommended)
+# This will automatically open the browser for you
 ```
 
 #### For Windows:
-1. Download and extract the repository
-2. Open PowerShell in the extracted folder
-3. Run either option below:
-
-##### Option 1: Using docker-compose (recommended)
 ```powershell
-docker-compose up -d
+# Run the Windows start script
+.\start.bat
 ```
 
-##### Option 2: Manual Docker commands
-```powershell
-docker build -t sdtracker .
-mkdir database  # Creates directory for persistent data
-docker run -d `
-  -p 8089:8080 `
-  -p 3000:3000 `
-  -p 3001:3001 `
-  -v ${PWD}/database:/app/database `
-  --name sdtracker `
-  sdtracker
-```
+Both scripts will:
+- Check system requirements
+- Install all dependencies automatically
+- Initialize the database (if needed)
+- Prompt for your Showdown username
+- Start all services in the correct order
+- Open the frontend at http://localhost:3000
 
-### Accessing the Application
-- Frontend: http://localhost:3000
-- Go Backend API: http://localhost:8089
-- Node.js API: http://localhost:3001
+### Manual Start (Alternative)
+If you prefer manual setup:
 
-### Data Management
-The database is stored in `./database/pokemon_stats.db` and persists between container restarts.
-
-#### Backup database:
+1. **Install dependencies:**
 ```bash
-cp ./database/pokemon_stats.db ./backup_$(date +%Y%m%d).db
+# Go dependencies
+cd gobackend
+go mod download
+cd ..
+
+# Node.js dependencies
+cd website/backend
+npm install
+cd ../frontend
+npm install
+cd ../..
 ```
 
-#### Restore backup:
+2. **Initialize database:**
 ```bash
-cp ./backup_file.db ./database/pokemon_stats.db
+go run gobackend/cmd/dbinit/main.go
 ```
 
-### Development Notes
-For development without Docker, use the original `run_all.sh` script.
-A Program to track Showdown games and ELO inspired by Poker hand trackers
+3. **Start services:**
+```bash
+# Set your username
+export SHOWDOWN_USERNAME="your_username"
+
+# Start services in order
+cd gobackend && go run ./cmd/sdtracker/main.go &
+cd ../website/backend && npm start &
+cd ../frontend && npm start
+```
+
+## Accessing the Application
+- **Frontend**: http://localhost:3000
+- **Go Backend API**: http://localhost:8098
+- **Node.js API**: http://localhost:3001
 
 ## System Requirements
-- Go 1.18+
-- Node.js 16+
-- npm 8+
-- SQLite3
+- **Go 1.23+** (required for Go backend)
+- **Node.js 18+** (required for frontend/backend)
+- **npm 8+** (package manager for Node.js)
+- **SQLite3** (database, usually included automatically)
+- **At least 512MB RAM** (recommended for smooth operation)
+- **Port availability**: 3000, 3001, 8098
 
 ## Installation
 
@@ -124,7 +109,7 @@ A Program to track Showdown games and ELO inspired by Poker hand trackers
 ## Configuration
 1. Database: 
    - Default location: `./pokemon_stats.db`
-   - Run `go run ./cmd/database/initDb.go` to initialize
+   - Run `go run ./cmd/dbinit/main.go` to initialize
 
 ## Running the Application
 
@@ -134,7 +119,7 @@ A Program to track Showdown games and ELO inspired by Poker hand trackers
 3. Frontend: `cd website/frontend && npm start` (Port: 3000)
 
 ### Option 2: Use the run script
-Run `./run_all.sh <your_showdown_username>` to start all components
+Run `./start.sh` (Linux/macOS) or `.\start.bat` (Windows) to start all components
 
 ## Port Configuration
 - Go Backend: 8098
@@ -146,3 +131,36 @@ The database contains tables for:
 - Matches
 - Games
 - Game players with team/lead/tera information
+
+## Troubleshooting
+
+### Port Conflicts
+If you get port conflicts, make sure these ports are available:
+- 3000 (Frontend)
+- 3001 (Node.js Backend)
+- 8098 (Go Backend)
+
+You can check port usage with:
+```bash
+# Linux/macOS
+lsof -i :3000
+lsof -i :3001
+lsof -i :8098
+
+# Windows
+netstat -ano | findstr :3000
+netstat -ano | findstr :3001
+netstat -ano | findstr :8098
+```
+
+### Missing Dependencies
+If you encounter dependency errors:
+1. Ensure Go 1.23+ and Node.js 18+ are installed
+2. Run the start script again - it will reinstall dependencies
+3. For manual setup, run dependency installation steps separately
+
+### Database Issues
+If you have database problems:
+1. Delete `pokemon_stats.db` and restart the application
+2. The database will be automatically recreated
+3. Make sure you have write permissions in the project directory

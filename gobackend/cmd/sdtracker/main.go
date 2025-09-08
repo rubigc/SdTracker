@@ -4,7 +4,6 @@ import (
 	"SdTracker/pkg/databasepopulate"
 	"SdTracker/pkg/downloadreplay"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -46,10 +45,12 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	fmt.Print("Whats your showdown username?")
-	fmt.Scanln(&username)
-	http.HandleFunc("/url", handlePost)
+	username = os.Getenv("SHOWDOWN_USERNAME")
+	if username == "" {
+		log.Fatal("SHOWDOWN_USERNAME environment variable not set")
+	}
 
-	log.Println("Server running on http://localhost:8089")
+	http.HandleFunc("/url", handlePost)
+	log.Printf("Server running on http://localhost:8089 for user %s", username)
 	log.Fatal(http.ListenAndServe(":8098", nil))
 }
