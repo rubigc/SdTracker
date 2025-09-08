@@ -1,9 +1,14 @@
 #!/bin/bash
 
+if [ -z "$1" ]; then
+    echo "Usage: $0 <pokemon_showdown_username>"
+    exit 1
+fi
+
 # Start Go Backend
-echo "Starting Go Backend..."
+echo "Starting Go Backend for user $1..."
 cd gobackend
-go run ./cmd/sdtracker/main.go &
+(echo "$1" | go run ./cmd/sdtracker/main.go) &
 GO_PID=$!
 cd ..
 
