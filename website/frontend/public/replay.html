@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon Showdown Replay</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+        #replay-container {
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="replay-container"></div>
+
+    <script>
+        // Get the replay data from the URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const replayData = urlParams.get('replay');
+        
+        if (replayData) {
+            // Decode the replay data and insert it into the container
+            const decodedReplay = decodeURIComponent(replayData);
+            document.getElementById('replay-container').innerHTML = decodedReplay;
+        } else {
+            document.getElementById('replay-container').innerHTML = '<p>No replay data provided.</p>';
+        }
+    </script>
+</body>
+</html>
