@@ -1,5 +1,5 @@
 // API service for handling all API requests
-const API_BASE_URL = 'https://opulent-space-train-r4gvj76wqxjhxr77-3001.app.github.dev/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
 class ApiService {
   // Generic fetch method with error handling and retry mechanism

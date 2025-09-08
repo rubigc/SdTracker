@@ -12,12 +12,7 @@ function App() {
     <ToastProvider>
       <div className="App" id="app">
         <header>
-          <h1>Pokémon Player Statistics</h1>
-          <p>Track and analyze your Pokémon battles performance</p>
-          <div className="welcome-message">
-            <p>Welcome to the Pokémon Player Statistics Tracker!</p>
-            <p>Enter a player name above to get started.</p>
-          </div>
+          <p className="app-subtitle">Track and analyze your Pokémon battles performance</p>
         </header>
         <PlayerStats />
         <footer className="app-footer">

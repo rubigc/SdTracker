@@ -152,7 +152,7 @@ const PlayerStats = () => {
   // Check if player exists
   const checkPlayerExists = async (playerName) => {
     try {
-      const response = await fetch(`https://opulent-space-train-r4gvj76wqxjhxr77-3001.app.github.dev/api/player/${playerName}/wr`);
+      const response = await fetch(`http://localhost:3001/api/player/${playerName}/wr`);
       if (!response.ok) {
         return false;
       }
