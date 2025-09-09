@@ -1,152 +1,123 @@
-#!/bin/bash
-
-# SdTracker Startskript
-# Dieses Skript installiert alle Abhängigkeiten und startet die Anwendung in der richtigen Reihenfolge
-
-set -e  # Beende das Skript bei Fehlern
-
-echo "🚀 SdTracker Startskript"
-echo "========================"
-
-# Schritt 0: Username abfragen
-echo ""
-echo "👤 Schritt 0: Showdown Username eingeben"
-read -p "Bitte gib deinen Showdown Username ein: " username
-
-export SHOWDOWN_USERNAME=$username
-echo "✅ Username gesetzt: $username"
-
-# Funktion zur Überprüfung, ob ein Befehl existiert
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-# Funktion zur Überprüfung, ob ein Port belegt ist
-port_occupied() {
-    lsof -Pi :$1 -sTCP:LISTEN -t >/dev/null 2>&1
-}
-
-# Schritt 1: Überprüfe die notwendigen Tools
-echo "📋 Schritt 1: Überprüfe Systemvoraussetzungen..."
-
-if ! command_exists go; then
-    echo "❌ Go ist nicht installiert. Bitte installiere Go 1.23 oder höher."
-    exit 1
-fi
-
-if ! command_exists node; then
-    echo "❌ Node.js ist nicht installiert. Bitte installiere Node.js 18 oder höher."
-    exit 1
-fi
-
-if ! command_exists npm; then
-    echo "❌ npm ist nicht installiert. Bitte installiere npm."
-    exit 1
-fi
-
-echo "✅ Systemvoraussetzungen sind erfüllt"
-
-# Schritt 2: Datenbank initialisieren
-echo ""
-echo "🗄️  Schritt 2: Datenbank initialisieren..."
-
-if [ ! -f "pokemon_stats.db" ]; then
-    echo "📝 Erstelle Datenbank..."
+@echo off
+chcp 65001 >nul
+setlocal enabledelayedexpansion
+ 
+set "SCRIPT_NAME=SdTracker Startskript"
+echo %SCRIPT_NAME% fuer Windows
+echo ================================
+ 
+echo Ueberpruefe Systemvoraussetzungen...
+ 
+:: Go prüfen
+where go >nul 2>&1
+if errorlevel 1 (
+    echo Fehler: Go ist nicht im PATH. Bitte installiere Go 1.23 oder hoeher.
+    echo Download: https://golang.org/dl/
+    pause
+    exit /b 1
+) else (
+    for /f "delims=" %%i in ('where go') do set "GO_PATH=%%i"
+    echo Go gefunden: !GO_PATH!
+)
+ 
+:: Node.js prüfen
+where node >nul 2>&1
+if errorlevel 1 (
+    echo Fehler: Node.js ist nicht im PATH. Bitte installiere Node.js 18 oder hoeher.
+    echo Download: https://nodejs.org/
+    pause
+    exit /b 1
+) else (
+    for /f "delims=" %%i in ('where node') do set "NODE_PATH=%%i"
+    echo Node.js gefunden: !NODE_PATH!
+)
+ 
+:: npm prüfen
+where npm >nul 2>&1
+if errorlevel 1 (
+    echo Fehler: npm ist nicht im PATH. Bitte installiere Node.js inkl. npm.
+    pause
+    exit /b 1
+) else (
+    for /f "delims=" %%i in ('where npm') do set "NPM_PATH=%%i"
+    echo npm gefunden: !NPM_PATH!
+)
+ 
+echo Systemvoraussetzungen sind erfuellt
+ 
+echo.
+echo Datenbank initialisieren...
+ 
+if not exist "pokemon_stats.db" (
+    echo Erstelle Datenbank...
     cd gobackend
-    go run ./cmd/dbinit/main.go
+    set CGO_ENABLED=1
+    go run cmd\database\initDb.go
     cd ..
-    echo "✅ Datenbank erfolgreich initialisiert"
-else
-    echo "✅ Datenbank existiert bereits"
-fi
-
-# Schritt 3: Go-Abhängigkeiten installieren
-echo ""
-echo "📦 Schritt 3: Installiere Go-Abhängigkeiten..."
+    echo Datenbank erfolgreich initialisiert
+) else (
+    echo Datenbank existiert bereits
+)
+ 
+echo.
+echo Installiere Go-Abhaengigkeiten...
 cd gobackend
 go mod download
 go mod tidy
 cd ..
-echo "✅ Go-Abhängigkeiten installiert"
+echo Go-Abhaengigkeiten installiert
+ 
+echo.
+echo Installiere Node.js/React-Abhaengigkeiten...
+ 
+echo Installiere Backend-Abhaengigkeiten...
+cd website\backend
+call npm install
+cd ..\..
+ 
+echo Installiere Frontend-Abhaengigkeiten...
+cd website\frontend
+call npm install
+cd ..\..
+ 
+echo Node.js/React-Abhaengigkeiten installiert
+ 
+echo.
+echo Ueberpruefe Port-Konflikte...
+ 
+for %%p in (8098 3001 3000) do (
+    netstat -ano | findstr "%%p" >nul 2>&1
+    if !errorlevel! equ 0 (
+        echo Port %%p ist bereits belegt. Bitte beende den laufenden Dienst.
+        echo Du kannst den Prozess mit ^'taskkill /PID [PID] /F^' beenden
+    )
+)
+ 
+echo.
+echo Starte Dienste...
+ 
+set /p username="Bitte gib deinen Showdown Username ein: "
+set "SHOWDOWN_USERNAME=%username%"
+echo Username gesetzt: %username%
+ 
+echo Starte sdtracker (Go Backend)...
+start "sdtracker" cmd /k "cd /d %CD%\gobackend && set SHOWDOWN_USERNAME=%username% && go run cmd\sdtracker\main.go && pause"
 
-# Schritt 4: Node.js/React-Abhängigkeiten installieren
-echo ""
-echo "📦 Schritt 4: Installiere Node.js/React-Abhängigkeiten..."
+timeout /t 3 /nobreak >nul
 
-# Backend
-echo "📦 Installiere Backend-Abhängigkeiten..."
-cd website/backend
-npm install
-cd ../..
-
-# Frontend
-echo "📦 Installiere Frontend-Abhängigkeiten..."
-cd website/frontend
-npm install
-cd ../..
-
-echo "✅ Node.js/React-Abhängigkeiten installiert"
-
-# Schritt 5: Überprüfe Port-Konflikte
-echo ""
-echo "🔍 Schritt 5: Überprüfe Port-Konflikte..."
-
-PORTS=(8098 3001 3000)
-for port in "${PORTS[@]}"; do
-    if port_occupied $port; then
-        echo "⚠️  Port $port ist bereits belegt. Bitte beende den laufenden Dienst."
-        echo "   Du kannst den Prozess mit 'lsof -ti:$port | xargs kill' beenden"
-    fi
-done
-
-# Schritt 6: Starte die Dienste in der richtigen Reihenfolge
-echo ""
-echo "🚀 Schritt 6: Starte Dienste..."
-
-# Starte sdtracker im Hintergrund
-echo "🔧 Starte sdtracker (Go Backend)..."
-cd gobackend
-SHOWDOWN_USERNAME=${SHOWDOWN_USERNAME:-default_user} go run ./cmd/sdtracker/main.go &
-SDTRACKER_PID=$!
-cd ..
-echo "✅ sdtracker gestartet (PID: $SDTRACKER_PID)"
-
-# Warte kurz, damit sdtracker starten kann
-sleep 3
-
-# Starte Node.js Backend im Hintergrund
-echo "🔧 Starte Node.js Backend..."
-cd website/backend
-npm start &
-BACKEND_PID=$!
-cd ../..
-echo "✅ Node.js Backend gestartet (PID: $BACKEND_PID)"
-
-# Warte kurz, damit Backend starten kann
-sleep 2
-
-# Starte Frontend im Vordergrund
-echo "🔧 Starte Frontend..."
-cd website/frontend
-echo "✅ Frontend wird gestartet. Öffne http://localhost:3000 im Browser"
-npm start
-
-# Aufräumen bei Skript-Ende
-cleanup() {
-    echo ""
-    echo "🛑 Beende alle Dienste..."
-    if [ ! -z "$SDTRACKER_PID" ]; then
-        kill $SDTRACKER_PID 2>/dev/null || true
-    fi
-    if [ ! -z "$BACKEND_PID" ]; then
-        kill $BACKEND_PID 2>/dev/null || true
-    fi
-    echo "✅ Alle Dienste beendet"
-    exit 0
-}
-
-# Setze Signal-Handler
-trap cleanup SIGINT SIGTERM
-
-# Warte auf das Ende des Frontend-Prozesses
-wait
+echo Starte Node.js Backend...
+start "Node.js Backend" cmd /k "cd /d %CD%\website\backend && npm start && pause"
+ 
+timeout /t 2 /nobreak >nul
+ 
+echo Starte Frontend...
+echo Frontend wird gestartet. Oeffne http://localhost:3000 im Browser
+cd website\frontend
+call npm start
+ 
+echo.
+echo Beende alle Dienste...
+taskkill /FI "WINDOWTITLE eq sdtracker*" /F >nul 2>&1
+taskkill /FI "WINDOWTITLE eq Node.js Backend*" /F >nul 2>&1
+echo Alle Dienste beendet
+pause

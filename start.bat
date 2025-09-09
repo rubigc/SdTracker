@@ -101,13 +101,12 @@ set "SHOWDOWN_USERNAME=%username%"
 echo Username gesetzt: %username%
  
 echo Starte sdtracker (Go Backend)...
-start "sdtracker" cmd /k "cd /d \"%CD%\gobackend\" ^&^& set SHOWDOWN_USERNAME=%username% ^&^& go run cmd\sdtracker\main.go ^&^& pause"
- 
+start "sdtracker" cmd /k "cd /d %CD%\gobackend && set SHOWDOWN_USERNAME=%username% && go run cmd\sdtracker\main.go && pause"
+
 timeout /t 3 /nobreak >nul
- 
+
 echo Starte Node.js Backend...
-start "Node.js Backend" cmd /k "cd /d \"%CD%\website\backend\" ^&^& npm start ^&^& pause"
- 
+start "Node.js Backend" cmd /k "cd /d %CD%\website\backend && npm start && pause"
 timeout /t 2 /nobreak >nul
  
 echo Starte Frontend...
