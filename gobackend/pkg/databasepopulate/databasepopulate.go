@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 	"strings"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func addMatch(replay string, db *sql.DB) {
@@ -39,7 +40,7 @@ func AddReplay(replay string, username string) {
 	matchUUID := parsereplay.GetMatchUUID(replay)
 
 	//Database
-	db, err := sql.Open("sqlite3", "./pokemon_stats.db")
+	db, err := sql.Open("sqlite3", "../pokemon_stats.db")
 	if err != nil {
 		log.Fatal(err)
 	}

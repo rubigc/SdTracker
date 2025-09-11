@@ -3,6 +3,7 @@ package downloadreplay
 import (
 	"context"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -18,9 +19,15 @@ func Download(url string) string {
 
 	log.Printf("[INFO] Starting download for URL: %s", url)
 
-	// Create Chrome allocator with headless mode
+	// Make sure downloads dir exists
+	if err := os.MkdirAll("./downloads", 0755); err != nil {
+		log.Fatalf("Failed to create downloads folder: %v", err)
+	}
+
+	// Create Chrome allocator with modern headless mode and persistent profile
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Headless,
+		chromedp.Flag("headless", true), // ✅ modern headless mode
+		chromedp.Flag("no-sandbox", true),
 	)
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
 	defer cancel()
@@ -48,70 +55,80 @@ func Download(url string) string {
 				done <- downloadedFilename
 				close(done)
 			}
+			if e.State == browser.DownloadProgressStateCanceled {
+				log.Printf("[ERROR] Download canceled by Chrome")
+				done <- ""
+				close(done)
+			}
 		}
 	})
 
-	// Run chromedp tasks
+	// Step 1: Navigate
 	log.Printf("[INFO] Navigating to page...")
-	err := chromedp.Run(ctx,
+	if err := chromedp.Run(ctx,
 		chromedp.Navigate(url),
 		chromedp.Sleep(2*time.Second),
-
-		// Click cookie consent if present
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			log.Printf("[INFO] Trying to accept cookie consent...")
-			err := chromedp.Click(".fc-button.fc-cta-consent.fc-primary-button", chromedp.NodeVisible).Do(ctx)
-			if err != nil {
-				log.Printf("[WARN] Cookie consent not found or already accepted: %v", err)
-			} else {
-				log.Printf("[INFO] Cookie consent accepted")
-			}
-			return nil
-		}),
-
-		// Click login button
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			return chromedp.Click(`#header > div.userbar > button:nth-child(1)`, chromedp.NodeVisible).Do(ctx)
-		}),
-
-		chromedp.WaitVisible(`input[name="username"]`),
-		chromedp.SendKeys(`input[name="username"]`, username),
-		chromedp.KeyEvent("\r"),
-		chromedp.Sleep(1*time.Second),
-
-		// Enter password
-		chromedp.WaitVisible(`input[name="password"]`),
-		chromedp.SendKeys(`input[name="password"]`, password),
-		chromedp.KeyEvent("\r"),
-		chromedp.Sleep(3*time.Second),
-
-		// Set up download behavior
-		browser.SetDownloadBehavior(browser.SetDownloadBehaviorBehaviorAllowAndName).
-			WithDownloadPath("./downloads").
-			WithEventsEnabled(true),
-
-		// Click download button
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			log.Printf("[INFO] Clicking download button...")
-			err := chromedp.Click(".replayDownloadButton", chromedp.NodeVisible).Do(ctx)
-			if err != nil {
-				log.Printf("[ERROR] Failed to click download button: %v", err)
-				return err
-			}
-			log.Printf("[INFO] Download button clicked successfully")
-			return nil
-		}),
-	)
-
-	if err != nil && !strings.Contains(err.Error(), "net::ERR_ABORTED") {
-		log.Printf("[ERROR] chromedp.Run failed: %v", err)
+	); err != nil {
+		log.Printf("[ERROR] Failed navigation: %v", err)
 		return ""
 	}
 
-	// Wait for download to finish
+	// Step 2: Cookie consent (only click if present)
+	log.Printf("[INFO] Checking cookie consent...")
+	var cookieExists bool
+	if err := chromedp.Run(ctx,
+		chromedp.Evaluate(`document.querySelector(".fc-button.fc-cta-consent.fc-primary-button") !== null`, &cookieExists),
+	); err != nil {
+		log.Printf("[WARN] Cookie check failed: %v", err)
+	}
+	if cookieExists {
+		log.Printf("[INFO] Cookie popup found, clicking accept...")
+		if err := chromedp.Run(ctx,
+			chromedp.Click(".fc-button.fc-cta-consent.fc-primary-button", chromedp.NodeVisible, chromedp.ByQuery),
+		); err != nil {
+			log.Printf("[WARN] Failed to click cookie consent: %v", err)
+		}
+	} else {
+		log.Printf("[INFO] No cookie popup detected")
+	}
+
+	// Step 3: Login flow
+	log.Printf("[INFO] Logging in...")
+	if err := chromedp.Run(ctx,
+		chromedp.Click(`#header > div.userbar > button:nth-child(1)`, chromedp.NodeVisible),
+		chromedp.WaitVisible(`input[name="username"]`),
+		chromedp.SendKeys(`input[name="username"]`, username+"\r"),
+		chromedp.Sleep(1*time.Second),
+		chromedp.WaitVisible(`input[name="password"]`),
+		chromedp.SendKeys(`input[name="password"]`, password+"\r"),
+		chromedp.Sleep(3*time.Second),
+	); err != nil {
+		log.Printf("[ERROR] Login failed: %v", err)
+		return ""
+	}
+
+	// Step 4: Click download button
+	log.Printf("[INFO] Clicking download button...")
+	if err := chromedp.Run(ctx,
+		browser.SetDownloadBehavior(browser.SetDownloadBehaviorBehaviorAllow).
+			WithDownloadPath("./downloads").
+			WithEventsEnabled(true),
+		chromedp.Click(".replayDownloadButton", chromedp.NodeVisible),
+	); err != nil && !strings.Contains(err.Error(), "net::ERR_ABORTED") {
+		log.Printf("[ERROR] Failed to click download button: %v", err)
+		return ""
+	}
+
+	// Step 6: Wait for download
 	log.Printf("[INFO] Waiting for download to complete...")
 	filename := <-done
+	if filename == "" {
+		log.Printf("[ERROR] No file downloaded")
+		return ""
+	}
+
 	filePath := filepath.Join("./downloads", filename)
 	log.Printf("[INFO] Replay downloaded to: %s", filePath)
 	return filePath
+
 }
