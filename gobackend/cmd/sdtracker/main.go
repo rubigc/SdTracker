@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 )
 
 // RequestData represents the JSON sent to /receive-logs
@@ -14,7 +15,13 @@ type RequestData struct {
 	URL string `json:"url"`
 }
 
-var username string
+var (
+	username string
+
+	// Mutex + Map um doppelte URLs zu verhindern
+	seenURLs   = make(map[string]bool)
+	seenURLsMu sync.Mutex
+)
 
 // parseDownload reads the replay file and sends it to the database
 func parseDownload(path string) {
@@ -43,11 +50,29 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// --- Check & Mark URL ---
+	seenURLsMu.Lock()
+	if seenURLs[data.URL] {
+		seenURLsMu.Unlock()
+		log.Printf("[INFO] URL already processed: %s", data.URL)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("URL already processed"))
+		return
+	}
+	// Mark as seen
+	seenURLs[data.URL] = true
+	seenURLsMu.Unlock()
+
 	// Download replay and add to database
 	filePath := downloadreplay.Download(data.URL)
 	if filePath == "" {
-    http.Error(w, "Failed to download replay", http.StatusInternalServerError)
-    return
+		// Wenn Download failed → URL wieder freigeben
+		seenURLsMu.Lock()
+		delete(seenURLs, data.URL)
+		seenURLsMu.Unlock()
+
+		http.Error(w, "Failed to download replay", http.StatusInternalServerError)
+		return
 	}
 	parseDownload(filePath)
 

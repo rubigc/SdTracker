@@ -8,7 +8,7 @@ app.use(express.json());
 const PORT = 3001;
 
 // Database setup
-const db = new sqlite3.Database('./pokemon_stats.db', (err) => {
+const db = new sqlite3.Database('../../pokemon_stats.db', (err) => {
   if (err) {
     console.error('Database connection error:', err);
     process.exit(1);

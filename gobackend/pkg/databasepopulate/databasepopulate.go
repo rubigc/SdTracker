@@ -46,13 +46,14 @@ func AddReplay(replay string, username string) {
 	}
 	defer db.Close()
 
-	//Match creation // Winner setter
+	//Match creation 
 	gameNumber := parsereplay.GetGameNumber(replay)
 	if gameNumber == 1 {
 		addMatch(replay, db)
-	} else {
-		setWinner(db, parsereplay.GetWhoWonId(replay), matchUUID, replay)
-	}
+	} 
+	
+	//Set winner regardless so 1 game bo3s dont bug the bo3 winrate
+	setWinner(db, parsereplay.GetWhoWonId(replay), matchUUID, replay)
 
 	//Get match Id
 	var matchId int

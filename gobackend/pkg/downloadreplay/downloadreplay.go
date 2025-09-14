@@ -20,13 +20,14 @@ func Download(url string) string {
 	log.Printf("[INFO] Starting download for URL: %s", url)
 
 	// Make sure downloads dir exists
-	if err := os.MkdirAll("./downloads", 0755); err != nil {
+	downloadDir, _ := filepath.Abs("./downloads")
+	if err := os.MkdirAll(downloadDir, 0755); err != nil {
 		log.Fatalf("Failed to create downloads folder: %v", err)
 	}
 
 	// Create Chrome allocator with modern headless mode and persistent profile
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", true), // ✅ modern headless mode
+		chromedp.Flag("headless", true), // ✅ modern headless
 		chromedp.Flag("no-sandbox", true),
 	)
 	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
@@ -41,6 +42,7 @@ func Download(url string) string {
 
 	done := make(chan string, 1)
 	var downloadedFilename string
+	var downloadGUID string
 
 	// Listen for download events
 	chromedp.ListenTarget(ctx, func(ev interface{}) {
@@ -48,11 +50,30 @@ func Download(url string) string {
 		case *browser.EventDownloadWillBegin:
 			log.Printf("[INFO] Download started: %s", e.URL)
 			downloadedFilename = e.SuggestedFilename
+			downloadGUID = e.GUID
 		case *browser.EventDownloadProgress:
 			log.Printf("[DEBUG] Download progress: %v, State: %s", e.ReceivedBytes, e.State)
 			if e.State == browser.DownloadProgressStateCompleted {
 				log.Printf("[INFO] Download completed: %s", downloadedFilename)
-				done <- downloadedFilename
+
+				actualPath := filepath.Join(downloadDir, downloadGUID)
+				finalPath := filepath.Join(downloadDir, downloadedFilename)
+
+				// Wait for Chrome to release the file
+				for i := 0; i < 10; i++ {
+					if _, err := os.Stat(actualPath); err == nil {
+						break
+					}
+					time.Sleep(500 * time.Millisecond)
+				}
+
+				// Rename GUID file -> correct filename
+				if err := os.Rename(actualPath, finalPath); err != nil {
+					log.Printf("[WARN] Failed renaming %s -> %s: %v", actualPath, finalPath, err)
+					done <- actualPath
+				} else {
+					done <- finalPath
+				}
 				close(done)
 			}
 			if e.State == browser.DownloadProgressStateCanceled {
@@ -73,7 +94,7 @@ func Download(url string) string {
 		return ""
 	}
 
-	// Step 2: Cookie consent (only click if present)
+	// Step 2: Cookie consent
 	log.Printf("[INFO] Checking cookie consent...")
 	var cookieExists bool
 	if err := chromedp.Run(ctx,
@@ -88,30 +109,51 @@ func Download(url string) string {
 		); err != nil {
 			log.Printf("[WARN] Failed to click cookie consent: %v", err)
 		}
-	} else {
-		log.Printf("[INFO] No cookie popup detected")
 	}
 
-	// Step 3: Login flow
-	log.Printf("[INFO] Logging in...")
+	log.Println("[INFO] Clicking login button")
 	if err := chromedp.Run(ctx,
 		chromedp.Click(`#header > div.userbar > button:nth-child(1)`, chromedp.NodeVisible),
-		chromedp.WaitVisible(`input[name="username"]`),
-		chromedp.SendKeys(`input[name="username"]`, username+"\r"),
-		chromedp.Sleep(1*time.Second),
-		chromedp.WaitVisible(`input[name="password"]`),
-		chromedp.SendKeys(`input[name="password"]`, password+"\r"),
-		chromedp.Sleep(3*time.Second),
 	); err != nil {
-		log.Printf("[ERROR] Login failed: %v", err)
+		log.Printf("[ERROR] Click failed: %v", err)
 		return ""
 	}
+
+	log.Println("[INFO] Typing username")
+	if err := chromedp.Run(ctx,
+		chromedp.SendKeys(`input[name="username"]`, username+"\n"),
+		chromedp.Sleep(2*time.Second),
+	); err != nil {
+		log.Printf("[ERROR] Typing username failed: %v", err)
+		return ""
+	}
+
+	log.Println("[INFO] Typing password")
+	if err := chromedp.Run(ctx,
+		chromedp.SendKeys(`input[name="password"]`, password+"\n"),
+		chromedp.Sleep(2*time.Second),
+	); err != nil {
+		log.Printf("[ERROR] Typing password failed: %v", err)
+		return ""
+	}
+
+	log.Println("[INFO] Waiting for post-login element")
+	if err := chromedp.Run(ctx,
+		// Wait for an element you expect after login
+		chromedp.WaitVisible(`#header > div.userbar > span > span`),
+	); err != nil {
+		log.Printf("[ERROR] Post-login element not found: %v", err)
+		return ""
+	}
+
+	log.Println("[INFO] Login flow completed successfully")
+
 
 	// Step 4: Click download button
 	log.Printf("[INFO] Clicking download button...")
 	if err := chromedp.Run(ctx,
-		browser.SetDownloadBehavior(browser.SetDownloadBehaviorBehaviorAllow).
-			WithDownloadPath("./downloads").
+		browser.SetDownloadBehavior(browser.SetDownloadBehaviorBehaviorAllowAndName).
+			WithDownloadPath(downloadDir).
 			WithEventsEnabled(true),
 		chromedp.Click(".replayDownloadButton", chromedp.NodeVisible),
 	); err != nil && !strings.Contains(err.Error(), "net::ERR_ABORTED") {
@@ -119,16 +161,15 @@ func Download(url string) string {
 		return ""
 	}
 
-	// Step 6: Wait for download
+	// Step 5: Wait for download
 	log.Printf("[INFO] Waiting for download to complete...")
-	filename := <-done
-	if filename == "" {
+	filePath := <-done
+	if filePath == "" {
 		log.Printf("[ERROR] No file downloaded")
 		return ""
 	}
-
-	filePath := filepath.Join("./downloads", filename)
-	log.Printf("[INFO] Replay downloaded to: %s", filePath)
-	return filePath
-
+	
+	absPath, _ := filepath.Abs(filePath)
+	log.Printf("[INFO] Replay downloaded to: %s", absPath)
+	return absPath
 }
