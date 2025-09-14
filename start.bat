@@ -53,7 +53,7 @@ if not exist "pokemon_stats.db" (
     cd gobackend
     set CGO_ENABLED=1
     go run cmd\database\initDb.go
-	cp "pokemon_stats.db" "../pokemon_stats.db"
+    copy "pokemon_stats.db" "../pokemon_stats.db"
     cd ..
     echo Datenbank erfolgreich initialisiert
 ) else (

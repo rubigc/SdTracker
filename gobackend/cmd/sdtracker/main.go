@@ -100,7 +100,6 @@ func enableCORS(next http.Handler) http.Handler {
 
 func main() {
 	username = os.Getenv("SHOWDOWN_USERNAME")
-	username = "rubigc"
 	if username == "" {
 		log.Fatal("SHOWDOWN_USERNAME environment variable not set")
 	}
