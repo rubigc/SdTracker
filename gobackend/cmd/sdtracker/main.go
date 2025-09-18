@@ -7,7 +7,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
+	"time"
 )
 
 // RequestData represents the JSON sent to /receive-logs
@@ -19,8 +21,8 @@ var (
 	username string
 
 	// Mutex + Map um doppelte URLs zu verhindern
-	seenURLs   = make(map[string]bool)
-	seenURLsMu sync.Mutex
+	URLs   = make(map[string]bool)
+	URLsMu sync.Mutex
 )
 
 // parseDownload reads the replay file and sends it to the database
@@ -50,31 +52,14 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// --- Check & Mark URL ---
-	seenURLsMu.Lock()
-	if seenURLs[data.URL] {
-		seenURLsMu.Unlock()
-		log.Printf("[INFO] URL already processed: %s", data.URL)
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("URL already processed"))
-		return
+	// Mark as seen and prevent overwrite of false and check for actual battle link
+	if strings.Contains(data.URL, "battle") {
+		URLsMu.Lock()
+		if _, exists := URLs[data.URL]; !exists {
+			URLs[data.URL] = false
+		}
+		URLsMu.Unlock()
 	}
-	// Mark as seen
-	seenURLs[data.URL] = true
-	seenURLsMu.Unlock()
-
-	// Download replay and add to database
-	filePath := downloadreplay.Download(data.URL)
-	if filePath == "" {
-		// Wenn Download failed → URL wieder freigeben
-		seenURLsMu.Lock()
-		delete(seenURLs, data.URL)
-		seenURLsMu.Unlock()
-
-		http.Error(w, "Failed to download replay", http.StatusInternalServerError)
-		return
-	}
-	parseDownload(filePath)
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("URL received"))
@@ -98,6 +83,19 @@ func enableCORS(next http.Handler) http.Handler {
 	})
 }
 
+func processReplay(url string) int {
+	filePath := downloadreplay.Download(url)
+	if filePath != "" {
+		URLsMu.Lock()
+		URLs[url] = true
+		URLsMu.Unlock()
+	} else {
+		return 1
+	}
+	parseDownload(filePath)
+	return 0
+}
+
 func main() {
 	username = os.Getenv("SHOWDOWN_USERNAME")
 	if username == "" {
@@ -106,6 +104,29 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/receive-logs", handlePost)
+
+	//Loop to periodically check if replays are downloadable and downloads all the replays that are
+	go func() {
+		for {
+			var routineUrls []string
+			time.Sleep(5 * time.Minute)
+
+			URLsMu.Lock()
+			for url := range URLs {
+				if !URLs[url] {
+					routineUrls = append(routineUrls, url)
+				}
+			}
+			URLsMu.Unlock()
+
+			for _, url := range routineUrls {
+				check := downloadreplay.CheckIfBattleFinished(url)
+				if check {
+					processReplay(url)
+				}
+			}
+		}
+	}()
 
 	log.Printf("Server running on http://localhost:8098 for user %s", username)
 	log.Fatal(http.ListenAndServe(":8098", enableCORS(mux)))

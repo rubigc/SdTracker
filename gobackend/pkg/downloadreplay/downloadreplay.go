@@ -148,7 +148,6 @@ func Download(url string) string {
 
 	log.Println("[INFO] Login flow completed successfully")
 
-
 	// Step 4: Click download button
 	log.Printf("[INFO] Clicking download button...")
 	if err := chromedp.Run(ctx,
@@ -168,8 +167,103 @@ func Download(url string) string {
 		log.Printf("[ERROR] No file downloaded")
 		return ""
 	}
-	
+
 	absPath, _ := filepath.Abs(filePath)
 	log.Printf("[INFO] Replay downloaded to: %s", absPath)
 	return absPath
+}
+
+func CheckIfBattleFinished(url string) bool {
+	username := "Sdtracker"
+	password := "KindaPublicPassword123"
+
+	// Create Chrome allocator with modern headless mode and persistent profile
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("headless", true), // ✅ modern headless
+		chromedp.Flag("no-sandbox", true),
+	)
+	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
+	defer cancel()
+
+	ctx, cancel := chromedp.NewContext(allocCtx, chromedp.WithLogf(log.Printf))
+	defer cancel()
+
+	// Set timeout
+	ctx, cancel = context.WithTimeout(ctx, 90*time.Second)
+	defer cancel()
+
+	// Step 1: Navigate
+	log.Printf("[INFO] Navigating to page...")
+	if err := chromedp.Run(ctx,
+		chromedp.Navigate(url),
+		chromedp.Sleep(2*time.Second),
+	); err != nil {
+		log.Printf("[ERROR] Failed navigation: %v", err)
+		return false
+	}
+
+	// Step 2: Cookie consent
+	log.Printf("[INFO] Checking cookie consent...")
+	var cookieExists bool
+	if err := chromedp.Run(ctx,
+		chromedp.Evaluate(`document.querySelector(".fc-button.fc-cta-consent.fc-primary-button") !== null`, &cookieExists),
+	); err != nil {
+		log.Printf("[WARN] Cookie check failed: %v", err)
+	}
+	if cookieExists {
+		log.Printf("[INFO] Cookie popup found, clicking accept...")
+		if err := chromedp.Run(ctx,
+			chromedp.Click(".fc-button.fc-cta-consent.fc-primary-button", chromedp.NodeVisible, chromedp.ByQuery),
+		); err != nil {
+			log.Printf("[WARN] Failed to click cookie consent: %v", err)
+		}
+	}
+
+	log.Println("[INFO] Clicking login button")
+	if err := chromedp.Run(ctx,
+		chromedp.Click(`#header > div.userbar > button:nth-child(1)`, chromedp.NodeVisible),
+	); err != nil {
+		log.Printf("[ERROR] Click failed: %v", err)
+		return false
+	}
+
+	log.Println("[INFO] Typing username")
+	if err := chromedp.Run(ctx,
+		chromedp.SendKeys(`input[name="username"]`, username+"\n"),
+		chromedp.Sleep(2*time.Second),
+	); err != nil {
+		log.Printf("[ERROR] Typing username failed: %v", err)
+		return false
+	}
+
+	log.Println("[INFO] Typing password")
+	if err := chromedp.Run(ctx,
+		chromedp.SendKeys(`input[name="password"]`, password+"\n"),
+		chromedp.Sleep(2*time.Second),
+	); err != nil {
+		log.Printf("[ERROR] Typing password failed: %v", err)
+		return false
+	}
+
+	log.Println("[INFO] Waiting for post-login element")
+	if err := chromedp.Run(ctx,
+		// Wait for an element you expect after login
+		chromedp.WaitVisible(`#header > div.userbar > span > span`),
+	); err != nil {
+		log.Printf("[ERROR] Post-login element not found: %v", err)
+		return false
+	}
+
+	log.Printf("[INFO] Checking for download Button")
+	var downloadButtonExists bool
+	if err := chromedp.Run(ctx,
+		chromedp.Evaluate(`document.querySelector(".replayDownloadButton") !== null`, &downloadButtonExists),
+	); err != nil {
+		log.Printf("[WARN] Downloadable check failed: %v", err)
+	}
+	if downloadButtonExists {
+		return true
+	} else {
+		return false
+	}
 }
