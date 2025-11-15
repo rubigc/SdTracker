@@ -50,7 +50,7 @@ echo Datenbank initialisieren...
  
 if not exist "pokemon_stats.db" (
     echo Erstelle Datenbank...
-    cd gobackend
+    cd parser
     set CGO_ENABLED=1
     go run cmd\database\initDb.go
     copy "pokemon_stats.db" "../pokemon_stats.db"
@@ -62,7 +62,7 @@ if not exist "pokemon_stats.db" (
  
 echo.
 echo Installiere Go-Abhaengigkeiten...
-cd gobackend
+cd parser
 go mod download
 go mod tidy
 cd ..
@@ -102,7 +102,7 @@ set "SHOWDOWN_USERNAME=%username%"
 echo Username gesetzt: %username%
  
 echo Starte sdtracker (Go Backend)...
-start "sdtracker" cmd /k "cd /d %CD%\gobackend && set SHOWDOWN_USERNAME=%username% && go run cmd\sdtracker\main.go && pause"
+start "sdtracker" cmd /k "cd /d %CD%\parser && set SHOWDOWN_USERNAME=%username% && go run cmd\sdtracker\main.go && pause"
 
 timeout /t 3 /nobreak >nul
 
