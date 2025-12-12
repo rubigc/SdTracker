@@ -1,4 +1,3 @@
-// ==================== /pkg/service/matches.go ====================
 package service
 
 import (

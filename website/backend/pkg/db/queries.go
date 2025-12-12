@@ -1,4 +1,3 @@
-// ==================== /pkg/db/queries.go ====================
 package db
 
 const (

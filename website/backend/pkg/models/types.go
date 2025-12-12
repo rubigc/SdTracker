@@ -1,4 +1,3 @@
-// ==================== /pkg/models/types.go ====================
 package models
 
 // WinrateStats holds all winrates for a player

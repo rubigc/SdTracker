@@ -1,4 +1,3 @@
-// ==================== /pkg/service/players.go ====================
 package service
 
 import (
