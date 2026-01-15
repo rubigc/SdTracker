@@ -31,7 +31,12 @@ impl ParserManager {
             "parser"
         });
         
+        // Get the resources directory to set as working directory
+        let mut resources_dir = parser_path.clone();
+        resources_dir.pop(); // Remove parser executable name
+        
         let child = Command::new(&parser_path)
+            .current_dir(&resources_dir)
             .env("SHOWDOWN_USERNAME", &username)
             .spawn()
             .map_err(|e| format!("Failed to start parser: {}", e))?;

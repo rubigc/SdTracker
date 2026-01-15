@@ -17,14 +17,14 @@ type RequestData struct {
 var username string
 
 // parseDownload reads the replay file and sends it to the database
-func parseDownload(path string) {
+func parseDownload(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	replay := string(data)
-	databasepopulate.AddReplay(replay, username)
+	return databasepopulate.AddReplay(replay, username)
 }
 
 // handlePost handles POST requests with a replay URL
@@ -46,10 +46,14 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	// Download replay and add to database
 	filePath := downloadreplay.Download(data.URL)
 	if filePath == "" {
-    http.Error(w, "Failed to download replay", http.StatusInternalServerError)
-    return
+		http.Error(w, "Failed to download replay", http.StatusInternalServerError)
+		return
 	}
-	parseDownload(filePath)
+	if err := parseDownload(filePath); err != nil {
+		log.Printf("Error parsing replay: %v", err)
+		http.Error(w, "Failed to parse replay", http.StatusInternalServerError)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("URL received"))

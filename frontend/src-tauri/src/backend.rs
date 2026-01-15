@@ -32,14 +32,19 @@ impl BackendManager {
             "backend-api"
         });
         
-        let child = Command::new(&backend_path)
+        // Get the resources directory to set as working directory
+        let mut resources_dir = backend_path.clone();
+        resources_dir.pop(); // Remove backend-api executable name
+        
+        let mut child = Command::new(&backend_path)
+            .current_dir(&resources_dir)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
             .map_err(|e| format!("Failed to start backend: {}", e))?;
         
         // Capture stdout
-        if let Some(stdout) = child.stdout {
+        if let Some(stdout) = child.stdout.take() {
             let logs = self.logs.clone();
             let reader = BufReader::new(stdout);
             std::thread::spawn(move || {
@@ -55,9 +60,9 @@ impl BackendManager {
                 }
             });
         }
-        
+
         // Capture stderr
-        if let Some(stderr) = child.stderr {
+        if let Some(stderr) = child.stderr.take() {
             let logs = self.logs.clone();
             let reader = BufReader::new(stderr);
             std::thread::spawn(move || {
