@@ -24,6 +24,26 @@ export function useBackend() {
       queryClient.invalidateQueries({ queryKey: ['backend', 'status'] });
     },
   });
+
+  const { data: apiRunning } = useQuery({
+    queryKey: ['api', 'running'],
+    queryFn: () => backendService.isApiServerRunning(),
+    refetchInterval: 1000, // Poll every second
+  });
+  
+  const startApiMutation = useMutation({
+    mutationFn: () => backendService.startApiServer(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['api', 'running'] });
+    },
+  });
+  
+  const stopApiMutation = useMutation({
+    mutationFn: () => backendService.stopApiServer(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['api', 'running'] });
+    },
+  });
   
   return {
     status: status as BackendStatus | undefined,
@@ -32,5 +52,10 @@ export function useBackend() {
     stopBackend: stopMutation.mutate,
     isStarting: startMutation.isPending,
     isStopping: stopMutation.isPending,
+    apiRunning: apiRunning ?? false,
+    startApiServer: startApiMutation.mutate,
+    stopApiServer: stopApiMutation.mutate,
+    isApiStarting: startApiMutation.isPending,
+    isApiStopping: stopApiMutation.isPending,
   };
 }

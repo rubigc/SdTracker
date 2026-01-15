@@ -14,6 +14,11 @@ cd parser
 go build -o ../frontend/src-tauri/resources/parser cmd/sdtracker/main.go
 cd ..
 
+# Copy data files
+echo "Copying data files..."
+mkdir -p frontend/src-tauri/resources/data
+cp parser/data/*.json frontend/src-tauri/resources/data/
+
 # Build Tauri app
 echo "Building Tauri application..."
 cd frontend

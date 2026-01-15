@@ -4,7 +4,7 @@ import { useBackend } from '../../hooks/useBackend';
 import { BackendLogsViewer } from './BackendLogsViewer';
 
 export function BackendControlPanel() {
-  const { status, isLoading, startBackend, stopBackend, isStarting, isStopping } = useBackend();
+  const { status, isLoading, startBackend, stopBackend, isStarting, isStopping, apiRunning, startApiServer, stopApiServer, isApiStarting, isApiStopping } = useBackend();
   
   const handleStart = () => {
     startBackend();
@@ -12,6 +12,14 @@ export function BackendControlPanel() {
   
   const handleStop = () => {
     stopBackend();
+  };
+
+  const handleStartApi = () => {
+    startApiServer();
+  };
+  
+  const handleStopApi = () => {
+    stopApiServer();
   };
   
   const isRunning = status?.running ?? false;
@@ -45,6 +53,37 @@ export function BackendControlPanel() {
             {isStopping ? 'Stopping...' : 'Stop Backend'}
           </Button>
         )}
+      </div>
+
+      <div className="mt-6 pt-6 border-t border-gray-700">
+        <h3 className="text-xl font-bold text-white mb-4">API Server</h3>
+        <div className="flex gap-2">
+          {!apiRunning ? (
+            <Button
+              onClick={handleStopApi}
+              disabled={isApiStopping}
+              className="w-full"
+              variant="danger"
+            >
+              {isApiStopping ? 'Stopping...' : 'Stop API Server'}
+            </Button>
+          ) : (
+            <Button
+              onClick={handleStartApi}
+              disabled={isApiStarting}
+              className="w-full"
+              variant="success"
+            >
+              {isApiStarting ? 'Starting...' : 'Start API Server'}
+            </Button>
+          )}
+        </div>
+        <div className="mt-4 bg-gray-700 rounded-lg p-4">
+          <p className="text-sm text-gray-400">Status</p>
+          <p className="text-lg font-semibold text-white">
+            {apiRunning ? 'Running on port 3001' : 'Stopped'}
+          </p>
+        </div>
       </div>
       
       {status && (
