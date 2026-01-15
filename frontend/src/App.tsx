@@ -3,7 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ParserDashboard } from './pages/ParserDashboard';
 import { StatsDashboard } from './pages/StatsDashboard';
 import { ApiExplorer } from './pages/ApiExplorer';
-import { Settings, Database, BarChart3, Code2 } from 'lucide-react';
+import { BackendControlPanel } from './components/backend/BackendControlPanel';
+import { Settings, Database, BarChart3, Code2, Server } from 'lucide-react';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -14,7 +15,7 @@ const queryClient = new QueryClient({
   },
 });
 
-type Page = 'parser' | 'stats' | 'api';
+type Page = 'parser' | 'stats' | 'api' | 'backend';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('parser');
@@ -66,6 +67,18 @@ function App() {
                 <Code2 className="w-5 h-5" />
                 <span>API Explorer</span>
               </button>
+
+              <button
+                onClick={() => setCurrentPage('backend')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  currentPage === 'backend'
+                    ? 'bg-pokemon-red text-white'
+                    : 'text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <Server className="w-5 h-5" />
+                <span>Backend Control</span>
+              </button>
             </nav>
             
             <div className="absolute bottom-4 left-4 right-4">
@@ -81,6 +94,7 @@ function App() {
             {currentPage === 'parser' && <ParserDashboard />}
             {currentPage === 'stats' && <StatsDashboard />}
             {currentPage === 'api' && <ApiExplorer />}
+            {currentPage === 'backend' && <BackendControlPanel />}
           </main>
         </div>
       </div>
