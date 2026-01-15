@@ -10,7 +10,7 @@ SdTracker is a comprehensive Pokemon Showdown game tracking system with a deskto
 - View detailed player statistics and winrates
 - Analyze lead Pokemon and Terastallization type performance
 - Review complete game history
-- Test and explore the REST API
+- Test and explore REST API
 
 ## Components
 
@@ -40,13 +40,14 @@ SdTracker is a comprehensive Pokemon Showdown game tracking system with a deskto
 
 ### Running the Application
 
-1. **Start the Backend API**:
+#### Development Mode:
+1. **Start Backend API**:
    ```bash
    cd go-backend
    go run cmd/api/main.go
    ```
 
-2. **Run the Frontend**:
+2. **Run Frontend**:
    ```bash
    cd frontend
    npm install
@@ -57,6 +58,32 @@ The Tauri application will open and you can:
 - Start the parser from the Parser Dashboard
 - View statistics from the Statistics Dashboard
 - Test API endpoints from the API Explorer
+
+#### Building Standalone Installer:
+
+For creating a distributable installer that includes all components:
+
+**Linux/macOS:**
+```bash
+cd frontend
+chmod +x build-all.sh
+./build-all.sh
+```
+
+**Windows:**
+```batch
+cd frontend
+build-all.bat
+```
+
+This will:
+1. Compile Go backend to executable
+2. Compile Go parser to executable
+3. Copy executables to resources directory
+4. Build Tauri application with bundled resources
+5. Generate platform-specific installer (NSIS/DMG/AppImage)
+
+See [`frontend/STANDALONE_IMPLEMENTATION.md`](frontend/STANDALONE_IMPLEMENTATION.md) for details on the standalone packaging implementation.
 
 ## Project Structure
 
@@ -76,8 +103,26 @@ SdTracker/
 │   └── go.mod
 ├── frontend/               # Tauri desktop app
 │   ├── src/                # React source
+│   │   ├── components/      # React components
+│   │   │   ├── common/      # Shared UI components
+│   │   │   ├── parser/      # Parser management components
+│   │   │   └── stats/       # Statistics components
+│   │   ├── pages/           # Page components
+│   │   ├── hooks/           # Custom React hooks
+│   │   ├── services/        # API service layer
+│   │   ├── types/           # TypeScript types
+│   │   └── utils/           # Utility functions
 │   ├── src-tauri/          # Rust backend
-│   └── package.json
+│   │   ├── src/
+│   │   │   ├── main.rs      # Tauri entry point
+│   │   │   ├── lib.rs       # Library exports and commands
+│   │   │   ├── backend.rs    # Backend process manager
+│   │   │   └── parser.rs     # Parser process manager
+│   │   ├── Cargo.toml       # Rust dependencies
+│   │   └── tauri.conf.json  # Tauri configuration
+│   ├── build-all.sh         # Linux/macOS build script
+│   ├── build-all.bat         # Windows build script
+│   └── package.json         # Node dependencies
 └── plans/                  # Architecture plans
 ```
 
@@ -94,50 +139,28 @@ SdTracker/
 
 - `POST /receive-logs` - Accept replay URLs from Pokemon Showdown
 
-## Development
+## Documentation
 
-### Backend Development
-
-```bash
-cd go-backend
-go run cmd/api/main.go
-```
-
-### Parser Development
-
-```bash
-cd parser
-go run cmd/sdtracker/main.go
-```
-
-Note: Set the `SHOWDOWN_USERNAME` environment variable before running the parser.
-
-### Frontend Development
-
-```bash
-cd frontend
-npm install
-npm run tauri dev
-```
+- [Frontend Architecture Plan](plans/tauri-frontend-plan.md)
+- [Standalone Packaging Plan](plans/standalone-packaging-plan.md)
+- [Standalone Implementation Guide](frontend/STANDALONE_IMPLEMENTATION.md)
+- [Frontend README](frontend/README.md)
 
 ## Building
 
 ### Build Backend
-
 ```bash
 cd go-backend
 go build -o sdtracker-api cmd/api/main.go
 ```
 
 ### Build Parser
-
 ```bash
 cd parser
 go build -o sdtracker-parser cmd/sdtracker/main.go
 ```
 
 ### Build Frontend
-
 ```bash
 cd frontend
 npm run tauri build
@@ -145,12 +168,6 @@ npm run tauri build
 
 This creates a distributable package in `frontend/src-tauri/target/release/bundle/`.
 
-## Documentation
-
-- [Frontend Architecture Plan](plans/tauri-frontend-plan.md)
-- [Frontend README](frontend/README.md)
-
 ## License
 
 See LICENSE file for details.
-

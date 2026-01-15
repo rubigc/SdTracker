@@ -1,43 +1,36 @@
-import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { backendService } from '../services/backend';
+import type { BackendStatus } from '../types';
 
 export function useBackend() {
-  const [isRunning, setIsRunning] = useState(false);
-  const [isStarting, setIsStarting] = useState(false);
-  const [isStopping, setIsStopping] = useState(false);
+  const queryClient = useQueryClient();
   
-  const startBackend = async () => {
-    setIsStarting(true);
-    try {
-      // Backend will be started automatically by Tauri
-      // This is a placeholder for future implementation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setIsRunning(true);
-    } catch (error) {
-      console.error('Failed to start backend:', error);
-    } finally {
-      setIsStarting(false);
-    }
-  };
+  const { data: status, isLoading } = useQuery({
+    queryKey: ['backend', 'status'],
+    queryFn: () => backendService.getBackendStatus(),
+    refetchInterval: 1000, // Poll every second
+  });
   
-  const stopBackend = async () => {
-    setIsStopping(true);
-    try {
-      // Backend will be stopped automatically by Tauri
-      // This is a placeholder for future implementation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setIsRunning(false);
-    } catch (error) {
-      console.error('Failed to stop backend:', error);
-    } finally {
-      setIsStopping(false);
-    }
-  };
+  const startMutation = useMutation({
+    mutationFn: () => backendService.startBackend(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['backend', 'status'] });
+    },
+  });
+  
+  const stopMutation = useMutation({
+    mutationFn: () => backendService.stopBackend(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['backend', 'status'] });
+    },
+  });
   
   return {
-    isRunning,
-    startBackend,
-    stopBackend,
-    isStarting,
-    isStopping,
+    status: status as BackendStatus | undefined,
+    isLoading,
+    startBackend: startMutation.mutate,
+    stopBackend: stopMutation.mutate,
+    isStarting: startMutation.isPending,
+    isStopping: stopMutation.isPending,
   };
 }

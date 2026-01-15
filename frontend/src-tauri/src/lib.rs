@@ -48,6 +48,20 @@ async fn is_backend_running(
     Ok(manager.is_running())
 }
 
+#[tauri::command]
+async fn get_backend_status(
+    manager: tauri::State<'_, Arc<BackendManager>>,
+) -> Result<backend::BackendStatus, String> {
+    Ok(manager.get_status())
+}
+
+#[tauri::command]
+async fn get_backend_logs(
+    manager: tauri::State<'_, Arc<BackendManager>>,
+) -> Result<Vec<String>, String> {
+    Ok(manager.get_logs())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let parser_manager = Arc::new(ParserManager::new());
@@ -64,6 +78,8 @@ pub fn run() {
             start_backend,
             stop_backend,
             is_backend_running,
+            get_backend_status,
+            get_backend_logs,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

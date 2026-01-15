@@ -49,6 +49,14 @@ export interface ParserStatus {
   logs_received: number;
 }
 
+// Backend Types
+export interface BackendStatus {
+  running: boolean;
+  port: number;
+  uptime: number;
+  logs: string[];
+}
+
 // API Types
 export interface ApiEndpoint {
   method: string;

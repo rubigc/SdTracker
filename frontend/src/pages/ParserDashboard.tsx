@@ -1,4 +1,5 @@
 import { ParserControlPanel } from '../components/parser/ParserControlPanel';
+import { BackendControlPanel } from '../components/backend/BackendControlPanel';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/common/Card';
 
 export function ParserDashboard() {
@@ -7,9 +8,18 @@ export function ParserDashboard() {
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Parser Dashboard</h1>
         <p className="text-gray-400">
-          Manage the Pokemon Showdown replay parser and monitor its status
+          Manage the Pokemon Showdown replay parser and backend, monitor their status
         </p>
       </div>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Backend Control</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <BackendControlPanel />
+        </CardContent>
+      </Card>
       
       <Card>
         <CardHeader>
@@ -26,23 +36,27 @@ export function ParserDashboard() {
         </CardHeader>
         <CardContent className="space-y-3 text-gray-300">
           <p>
-            <strong className="text-white">1. Enter your Pokemon Showdown username</strong> - 
+            <strong className="text-white">1. Start the Backend</strong> - 
+            Click "Start Backend" to start the API server on port 8080
+          </p>
+          <p>
+            <strong className="text-white">2. Enter your Pokemon Showdown username</strong> - 
             This is the username you use on Pokemon Showdown
           </p>
           <p>
-            <strong className="text-white">2. Click "Start Parser"</strong> - 
+            <strong className="text-white">3. Click "Start Parser"</strong> - 
             This will start the parser process on port 8098
           </p>
           <p>
-            <strong className="text-white">3. Configure Pokemon Showdown</strong> - 
+            <strong className="text-white">4. Configure Pokemon Showdown</strong> - 
             Set the replay URL to send to http://localhost:8098/receive-logs
           </p>
           <p>
-            <strong className="text-white">4. Monitor the parser</strong> - 
-            Watch the status and logs to ensure it's working correctly
+            <strong className="text-white">5. Monitor the services</strong> - 
+            Watch the status and logs to ensure they're working correctly
           </p>
           <p>
-            <strong className="text-white">5. View statistics</strong> - 
+            <strong className="text-white">6. View statistics</strong> - 
             Navigate to the Statistics Dashboard to view your game statistics
           </p>
         </CardContent>
