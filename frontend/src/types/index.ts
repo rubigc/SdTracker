@@ -19,7 +19,7 @@ export interface LeadStat {
 }
 
 export interface TeraStat {
-  tera_type: string;
+  pokemon: string;
   win_rate: number;
   games_played: number;
 }

@@ -986,10 +986,46 @@ const POKEMON_NAME_TO_ID: Record<string, number> = {
   'zoroark-hisui': 571,
   'kleavor': 900,
   'ursaluna': 901,
+  'ursaluna-bloodmoon': 10272,
   'wyrdeer': 899,
   'enamorus': 904,
   'enamorus-incarnate': 904,
   'enamorus-therian': 905,
+  // Gen 9 Paradox Pokemon and others
+  'great-tusk': 984,
+  'scream-tail': 985,
+  'brute-bonnet': 986,
+  'flutter-mane': 987,
+  'slither-wing': 988,
+  'sandy-shocks': 989,
+  'iron-treads': 990,
+  'iron-bundle': 991,
+  'iron-hands': 992,
+  'iron-jugulis': 993,
+  'iron-moth': 994,
+  'iron-thorns': 995,
+  'roaring-moon': 1005,
+  'iron-valiant': 1006,
+  'walking-wake': 1009,
+  'iron-leaves': 1010,
+  'gouging-fire': 1020,
+  'raging-bolt': 1021,
+  'iron-boulder': 1022,
+  'iron-crown': 1023,
+  // Gen 9 Legendaries and others
+  'koraidon': 1007,
+  'miraidon': 1008,
+  'chi-yu': 1016,
+  'chien-pao': 1014,
+  'ting-lu': 1015,
+  'wo-chien': 1013,
+  'ogerpon': 1017,
+  'ogerpon-wellspring': 10273,
+  'ogerpon-hearthflame': 10274,
+  'ogerpon-cornerstone': 10275,
+  'farigiraf': 981,
+  'terapagos': 1024,
+  'pecharunt': 1025,
   // Other forms
   'pikachu-original': 25,
   'pikachu-kanto': 25,
@@ -1052,22 +1088,58 @@ export const TYPE_COLORS: Record<string, string> = {
 };
 
 /**
+ * Normalize Pokemon name for lookup
+ * Handles various formats like "Ursaluna-Bloodmoon", "Flutter Mane", "Urshifu-Rapid-Strike"
+ */
+function normalizePokemonName(name: string): string {
+  let normalized = name
+    .toLowerCase()
+    .trim()
+    // Replace spaces with hyphens for form names
+    .replace(/\s+/g, '-')
+    // Handle common naming patterns
+    .replace(/^([a-z]+) ?[-–] ?([a-z]+)$/i, '$1-$2')
+    // Remove extra hyphens
+    .replace(/-+/g, '-');
+  
+  // Try the exact name first
+  if (POKEMON_NAME_TO_ID[normalized]) {
+    return normalized;
+  }
+  
+  // Try with spaces instead of hyphens
+  const withSpaces = normalized.replace(/-/g, ' ');
+  if (POKEMON_NAME_TO_ID[withSpaces]) {
+    return withSpaces;
+  }
+  
+  // Try without hyphens (base form)
+  const baseName = normalized.split('-')[0];
+  if (POKEMON_NAME_TO_ID[baseName]) {
+    return baseName;
+  }
+  
+  return normalized;
+}
+
+/**
  * Get Pokemon sprite URL from Pokemon name
  * @param pokemonName - The name of the Pokemon (case-insensitive)
  * @param shiny - Whether to get the shiny sprite (default: false)
  * @returns The URL to the Pokemon sprite image
  */
 export function getPokemonSpriteUrl(pokemonName: string, shiny: boolean = false): string {
-  const normalizedName = pokemonName.toLowerCase().trim();
+  const normalizedName = normalizePokemonName(pokemonName);
   const pokemonId = POKEMON_NAME_TO_ID[normalizedName];
   
   if (!pokemonId) {
     // Return a placeholder if Pokemon not found
+    console.warn(`Pokemon sprite not found for: ${pokemonName} (normalized: ${normalizedName})`);
     return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png';
   }
   
   const baseUrl = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
-  return shiny 
+  return shiny
     ? `${baseUrl}/shiny/${pokemonId}.png`
     : `${baseUrl}/${pokemonId}.png`;
 }

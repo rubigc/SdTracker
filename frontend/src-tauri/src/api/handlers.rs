@@ -198,19 +198,22 @@ fn get_tera_stats(db: &Database, player_name: &str) -> Result<Vec<TeraStat>, Box
     
     let mut stats: Vec<TeraStat> = results
         .into_iter()
-        .filter_map(|r| r.tera_type.map(|tera_type| {
-            let win_rate = if r.total > 0 {
-                (r.wins as f64 / r.total as f64) * 100.0
-            } else {
-                0.0
-            };
-            
-            TeraStat {
-                tera_type,
-                win_rate,
-                games_played: r.total,
-            }
-        }))
+        .filter_map(|r| {
+            // tera_used stores the Pokemon name that Terastallized, not the Tera type
+            r.tera_type.map(|pokemon| {
+                let win_rate = if r.total > 0 {
+                    (r.wins as f64 / r.total as f64) * 100.0
+                } else {
+                    0.0
+                };
+                
+                TeraStat {
+                    pokemon,
+                    win_rate,
+                    games_played: r.total,
+                }
+            })
+        })
         .collect();
     
     // Sort by games played (descending)

@@ -1,6 +1,6 @@
 import { Card, CardHeader, CardTitle, CardContent } from '../common/Card';
 import type { TeraStat } from '../../types';
-import { getPokemonTypeColor, getWinRateColor, getWinRateColorClass } from '../../utils/pokemonSprites';
+import { getPokemonSpriteUrl, getWinRateColor, getWinRateColorClass, formatPokemonName } from '../../utils/pokemonSprites';
 
 interface TeraCardProps {
   data: TeraStat[] | undefined;
@@ -43,41 +43,51 @@ export function TeraCard({ data, loading }: TeraCardProps) {
         <CardTitle>Tera Statistics</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
+        <div className="pokemon-grid">
           {data.map((tera, index) => (
-            <div
-              key={index}
-              className="glass-dark rounded-lg p-4 hover:bg-white/5 transition-all hover:scale-[1.02]"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="type-badge px-3 py-1.5 text-white font-semibold text-sm"
-                    style={{
-                      background: `linear-gradient(135deg, ${getPokemonTypeColor(tera.tera_type)} 0%, ${adjustColorBrightness(getPokemonTypeColor(tera.tera_type), -20)} 100%)`,
-                    }}
-                  >
-                    {tera.tera_type}
-                  </div>
-                </div>
-                <span className={`text-xl font-bold ${getWinRateColorClass(tera.win_rate)}`}>
-                  {tera.win_rate.toFixed(1)}%
-                </span>
-              </div>
-              
-              <div className="progress-bar h-2 mb-2">
-                <div
-                  className="progress-bar-fill"
-                  style={{
-                    width: `${tera.win_rate}%`,
-                    backgroundColor: getWinRateColor(tera.win_rate),
+            <div key={index} className="pokemon-card">
+              <div className="relative mb-3">
+                <img
+                  src={getPokemonSpriteUrl(tera.pokemon)}
+                  alt={tera.pokemon}
+                  className="pokemon-sprite w-20 h-20 mx-auto"
+                  onError={(e) => {
+                    e.currentTarget.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png';
                   }}
                 />
+                <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+                     style={{ backgroundColor: getWinRateColor(tera.win_rate) }}>
+                  {tera.win_rate.toFixed(0)}
+                </div>
               </div>
               
-              <div className="flex justify-between text-xs">
-                <span className="text-gray-400">Games Used</span>
-                <span className="text-white font-medium">{tera.games_played}</span>
+              <h4 className="text-white font-semibold text-sm mb-2 truncate">
+                {formatPokemonName(tera.pokemon)}
+              </h4>
+              
+              <div className="space-y-2">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-gray-400">Win Rate</span>
+                    <span className={getWinRateColorClass(tera.win_rate)}>
+                      {tera.win_rate.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="progress-bar h-1.5">
+                    <div
+                      className="progress-bar-fill"
+                      style={{
+                        width: `${tera.win_rate}%`,
+                        backgroundColor: getWinRateColor(tera.win_rate),
+                      }}
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-400">Games</span>
+                  <span className="text-white font-medium">{tera.games_played}</span>
+                </div>
               </div>
             </div>
           ))}
@@ -85,12 +95,4 @@ export function TeraCard({ data, loading }: TeraCardProps) {
       </CardContent>
     </Card>
   );
-}
-
-function adjustColorBrightness(color: string, amount: number): string {
-  const hex = color.replace('#', '');
-  const r = Math.max(0, Math.min(255, parseInt(hex.substr(0, 2), 16) + amount));
-  const g = Math.max(0, Math.min(255, parseInt(hex.substr(2, 2), 16) + amount));
-  const b = Math.max(0, Math.min(255, parseInt(hex.substr(4, 2), 16) + amount));
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }

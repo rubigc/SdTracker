@@ -109,27 +109,48 @@ impl Database {
     }
 
     pub fn get_lead_stats(&self, player_name: &str) -> Result<Vec<StatResult>> {
+        // First, get all the raw lead data with wins
         let mut stmt = self.conn.prepare_cached(
-            "SELECT 
-              lead_pokemon AS pokemon,
-              COUNT(*) AS total,
-              SUM(CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END) AS wins
+            "SELECT
+              lead_pokemon,
+              CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END AS won
             FROM game_players gp
             JOIN games g ON gp.game_id = g.id
             WHERE gp.player_name = ?1
               AND lead_pokemon IS NOT NULL
-              AND lead_pokemon != ''
-            GROUP BY lead_pokemon"
+              AND lead_pokemon != ''"
         )?;
 
-        let results = stmt.query_map(params![player_name], |row| {
-            Ok(StatResult {
-                pokemon: row.get(0)?,
-                tera_type: None,
-                total: row.get(1)?,
-                wins: row.get(2)?,
-            })
+        // Collect raw data
+        let raw_data: Vec<(String, i64)> = stmt.query_map(params![player_name], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
         })?.collect::<Result<Vec<_>>>()?;
+
+        // Split semicolon-separated Pokemon and aggregate stats
+        let mut pokemon_stats: std::collections::HashMap<String, (i64, i64)> = std::collections::HashMap::new();
+        
+        for (lead_pokemon, won) in raw_data {
+            // Split by semicolon to get individual Pokemon
+            for pokemon in lead_pokemon.split(';') {
+                let pokemon = pokemon.trim();
+                if !pokemon.is_empty() {
+                    let entry = pokemon_stats.entry(pokemon.to_string()).or_insert((0, 0));
+                    entry.0 += 1; // total games
+                    entry.1 += won; // wins
+                }
+            }
+        }
+
+        // Convert to StatResult
+        let results: Vec<StatResult> = pokemon_stats
+            .into_iter()
+            .map(|(pokemon, (total, wins))| StatResult {
+                pokemon: Some(pokemon),
+                tera_type: None,
+                total,
+                wins,
+            })
+            .collect();
 
         Ok(results)
     }

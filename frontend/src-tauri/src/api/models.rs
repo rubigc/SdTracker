@@ -32,7 +32,7 @@ pub struct LeadStat {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TeraStat {
-    pub tera_type: String,
+    pub pokemon: String,
     pub win_rate: f64,
     pub games_played: i64,
 }
