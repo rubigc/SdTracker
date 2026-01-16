@@ -7,7 +7,7 @@ use super::routes;
 
 pub struct ApiServer {
     addr: String,
-    handle: Option<tokio::task::JoinHandle<()>>,
+    handle: Option<tokio::task::JoinHandle<Result<(), Box<dyn std::error::Error>>>>,
 }
 
 impl ApiServer {
@@ -22,26 +22,29 @@ impl ApiServer {
         let addr = self.addr.clone();
         let db_clone = Arc::clone(&db);
         
-        let handle = tokio::spawn(async move {
+        let handle = tokio::task::spawn_blocking(move || {
+            let rt = tokio::runtime::Runtime::new()?;
             let db = web::Data::new(db_clone);
             
-            HttpServer::new(move || {
-                App::new()
-                    .wrap(middleware::Logger::default())
-                    .wrap(
-                        Cors::permissive()
-                            .allowed_origin_fn(|origin, _req_head| {
-                                true // Allow all origins for development
-                            })
-                            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-                            .allowed_headers(vec!["*"])
-                    )
-                    .app_data(db.clone())
-                    .configure(routes::configure_routes)
+            rt.block_on(async move {
+                HttpServer::new(move || {
+                    App::new()
+                        .wrap(middleware::Logger::default())
+                        .wrap(
+                            Cors::permissive()
+                                .allowed_origin_fn(|_origin, _req_head| {
+                                    true // Allow all origins for development
+                                })
+                                .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+                                .allowed_headers(vec!["*"])
+                        )
+                        .app_data(db.clone())
+                        .configure(routes::configure_routes)
+                })
+                .bind(&addr)?
+                .run()
+                .await
             })
-            .bind(&addr)?
-            .run()
-            .await
         });
         
         self.handle = Some(handle);
