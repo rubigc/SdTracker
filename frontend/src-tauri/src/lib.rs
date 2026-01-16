@@ -3,7 +3,6 @@ mod api;
 
 use parser::ParserManager;
 use api::ApiServer;
-use api::Database;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -34,8 +33,7 @@ async fn start_api_server(
     manager: tauri::State<'_, Arc<Mutex<ApiServer>>>,
 ) -> Result<(), String> {
     let mut server = manager.inner().lock().await;
-    let db = Arc::new(Mutex::new(Database::new().map_err(|e| e.to_string())?));
-    server.start(db).map_err(|e| e.to_string())
+    server.start().map_err(|e| e.to_string())
 }
 
 #[tauri::command]

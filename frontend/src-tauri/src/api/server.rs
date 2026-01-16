@@ -1,7 +1,6 @@
 use actix_web::{App, HttpServer, web, middleware};
 use actix_cors::Cors;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use super::db::Database;
 use super::routes;
 
@@ -18,13 +17,15 @@ impl ApiServer {
         }
     }
 
-    pub fn start(&mut self, db: Arc<Mutex<Database>>) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn start(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let addr = self.addr.clone();
-        let db_clone = Arc::clone(&db);
+        
+        // Create database connection - each worker will use this shared connection
+        let db = Database::new().map_err(|e| format!("Failed to connect to database: {}", e))?;
+        let db_data = web::Data::new(Arc::new(std::sync::Mutex::new(db)));
         
         let handle = tokio::task::spawn_blocking(move || {
             let rt = tokio::runtime::Runtime::new()?;
-            let db = web::Data::new(db_clone);
             
             rt.block_on(async move {
                 HttpServer::new(move || {
@@ -38,7 +39,7 @@ impl ApiServer {
                                 .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
                                 .allowed_headers(vec!["*"])
                         )
-                        .app_data(db.clone())
+                        .app_data(db_data.clone())
                         .configure(routes::configure_routes)
                 })
                 .bind(&addr)?

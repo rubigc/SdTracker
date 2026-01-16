@@ -7,16 +7,28 @@ pub struct Database {
     conn: Connection,
 }
 
+/// Get path to a resource file relative to the executable's resources directory
+fn get_resource_path(resource_name: &str) -> PathBuf {
+    // First check if DB_PATH environment variable is set
+    if let Ok(db_path) = env::var("DB_PATH") {
+        return PathBuf::from(db_path);
+    }
+    
+    // Otherwise, resolve relative to executable's resources folder
+    let mut path = std::env::current_exe()
+        .expect("Failed to get executable path");
+    path.pop(); // Remove executable name
+    path.push("resources");
+    path.push(resource_name);
+    path
+}
+
 impl Database {
     pub fn new() -> Result<Self> {
-        // Get database path from environment or use default
-        let db_path = env::var("DB_PATH")
-            .unwrap_or_else(|_| "./pokemon_stats.db".to_string());
-
-        // Ensure the directory exists
-        if let Some(parent) = PathBuf::from(&db_path).parent() {
-            std::fs::create_dir_all(parent).ok();
-        }
+        // Get database path from resources folder
+        let db_path = get_resource_path("pokemon_stats.db");
+        
+        eprintln!("Opening database at: {:?}", db_path);
 
         let conn = Connection::open(&db_path)?;
         

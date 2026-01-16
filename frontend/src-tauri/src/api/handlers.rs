@@ -1,4 +1,5 @@
 use actix_web::{web, HttpResponse, Responder};
+use std::sync::{Arc, Mutex};
 use super::models::*;
 use super::db::Database;
 
@@ -11,11 +12,22 @@ pub async fn health() -> impl Responder {
 
 pub async fn get_winrates(
     path: web::Path<String>,
-    db: web::Data<Database>,
+    db: web::Data<Arc<Mutex<Database>>>,
 ) -> impl Responder {
     let player_name = path.into_inner();
     
-    match get_winrate_stats(&db, &player_name) {
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+    
+    match get_winrate_stats(&db_guard, &player_name) {
         Ok(stats) => HttpResponse::Ok().json(stats),
         Err(e) => {
             eprintln!("Error getting winrates: {}", e);
@@ -29,11 +41,22 @@ pub async fn get_winrates(
 
 pub async fn get_leads(
     path: web::Path<String>,
-    db: web::Data<Database>,
+    db: web::Data<Arc<Mutex<Database>>>,
 ) -> impl Responder {
     let player_name = path.into_inner();
     
-    match get_lead_stats(&db, &player_name) {
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+    
+    match get_lead_stats(&db_guard, &player_name) {
         Ok(stats) => HttpResponse::Ok().json(stats),
         Err(e) => {
             eprintln!("Error getting leads: {}", e);
@@ -47,11 +70,22 @@ pub async fn get_leads(
 
 pub async fn get_tera(
     path: web::Path<String>,
-    db: web::Data<Database>,
+    db: web::Data<Arc<Mutex<Database>>>,
 ) -> impl Responder {
     let player_name = path.into_inner();
     
-    match get_tera_stats(&db, &player_name) {
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+    
+    match get_tera_stats(&db_guard, &player_name) {
         Ok(stats) => HttpResponse::Ok().json(stats),
         Err(e) => {
             eprintln!("Error getting tera: {}", e);
@@ -65,11 +99,22 @@ pub async fn get_tera(
 
 pub async fn get_history(
     path: web::Path<String>,
-    db: web::Data<Database>,
+    db: web::Data<Arc<Mutex<Database>>>,
 ) -> impl Responder {
     let player_name = path.into_inner();
     
-    match get_history_games(&db, &player_name) {
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+    
+    match get_history_games(&db_guard, &player_name) {
         Ok(games) => HttpResponse::Ok().json(games),
         Err(e) => {
             eprintln!("Error getting history: {}", e);

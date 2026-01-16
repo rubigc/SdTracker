@@ -1,7 +1,6 @@
 import { Button } from '../common/Button';
 import { StatusIndicator } from '../common/StatusIndicator';
 import { useBackend } from '../../hooks/useBackend';
-import { BackendLogsViewer } from './BackendLogsViewer';
 
 export function BackendControlPanel() {
   const { apiRunning, startApiServer, stopApiServer, isApiStarting, isApiStopping } = useBackend();
