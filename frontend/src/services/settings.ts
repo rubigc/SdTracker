@@ -1,9 +1,7 @@
 import type { AppSettings } from '../types/settings';
 
 const DEFAULT_SETTINGS: AppSettings = {
-  backendPort: 3001,
   parserPort: 8098,
-  autoStartBackend: true,
   autoStartParser: false,
   theme: 'dark',
   language: 'en',
