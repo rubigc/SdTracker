@@ -7,7 +7,7 @@ use super::routes;
 
 pub struct ApiServer {
     addr: String,
-    handle: Option<tokio::task::JoinHandle<Result<(), Box<dyn std::error::Error>>>>,
+    handle: Option<tokio::task::JoinHandle<Result<(), std::io::Error>>>,
 }
 
 impl ApiServer {

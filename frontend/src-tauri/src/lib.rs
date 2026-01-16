@@ -70,7 +70,7 @@ async fn get_backend_logs(
 async fn start_api_server(
     manager: tauri::State<'_, Arc<Mutex<ApiServer>>>,
 ) -> Result<(), String> {
-    let mut server = manager.lock().await;
+    let mut server = manager.inner().lock().await;
     let db = Arc::new(Mutex::new(Database::new().map_err(|e| e.to_string())?));
     server.start(db).map_err(|e| e.to_string())
 }
@@ -79,7 +79,7 @@ async fn start_api_server(
 async fn stop_api_server(
     manager: tauri::State<'_, Arc<Mutex<ApiServer>>>,
 ) -> Result<(), String> {
-    let mut server = manager.lock().await;
+    let mut server = manager.inner().lock().await;
     server.stop();
     Ok(())
 }
@@ -88,7 +88,7 @@ async fn stop_api_server(
 async fn is_api_server_running(
     manager: tauri::State<'_, Arc<Mutex<ApiServer>>>,
 ) -> Result<bool, String> {
-    let server = manager.lock().await;
+    let server = manager.inner().lock().await;
     Ok(server.is_running())
 }
 

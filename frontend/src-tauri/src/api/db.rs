@@ -146,16 +146,15 @@ impl Database {
 
     pub fn get_history(&self, player_name: &str) -> Result<Vec<HistoryResult>> {
         let mut stmt = self.conn.prepare_cached(
-            "SELECT g.id AS game_id, g.game_number, g.winner, 
-                   m.player1, m.player2, m.match_date, 
+            "SELECT g.id AS game_id, g.game_number, g.winner,
                    gp.team_pokemon AS player_team, gp.lead_pokemon AS player_lead, gp.tera_used AS player_tera,
                    opp.player_name AS opponent, opp.team_pokemon AS opponent_team, opp.lead_pokemon AS opponent_lead, opp.tera_used AS opponent_tera
-            FROM games g
-            JOIN matches m ON g.match_id = m.id
-            JOIN game_players gp ON g.id = gp.game_id AND gp.player_name = ?1
-            JOIN game_players opp ON g.id = opp.game_id AND opp.player_name != ?2
-            ORDER BY g.id DESC
-            LIMIT 100"
+             FROM games g
+             JOIN matches m ON g.match_id = m.id
+             JOIN game_players gp ON g.id = gp.game_id AND gp.player_name = ?1
+             JOIN game_players opp ON g.id = opp.game_id AND opp.player_name != ?2
+             ORDER BY g.id DESC
+             LIMIT 100"
         )?;
 
         let results = stmt.query_map(params![player_name, player_name], |row| {
@@ -163,16 +162,13 @@ impl Database {
                 game_id: row.get(0)?,
                 game_number: row.get(1)?,
                 winner: row.get(2)?,
-                player1: row.get(3)?,
-                player2: row.get(4)?,
-                match_date: row.get(5)?,
-                player_team: row.get(6)?,
-                player_lead: row.get(7)?,
-                player_tera: row.get(8)?,
-                opponent: row.get(9)?,
-                opponent_team: row.get(10)?,
-                opponent_lead: row.get(11)?,
-                opponent_tera: row.get(12)?,
+                player_team: row.get(3)?,
+                player_lead: row.get(4)?,
+                player_tera: row.get(5)?,
+                opponent: row.get(6)?,
+                opponent_team: row.get(7)?,
+                opponent_lead: row.get(8)?,
+                opponent_tera: row.get(9)?,
             })
         })?.collect::<Result<Vec<_>>>()?;
 
