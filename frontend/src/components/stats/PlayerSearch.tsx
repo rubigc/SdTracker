@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Input } from '../common/Input';
 import { Button } from '../common/Button';
 import { Search } from 'lucide-react';
 
@@ -19,17 +18,33 @@ export function PlayerSearch({ onSearch, loading }: PlayerSearchProps) {
   };
   
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2">
-      <Input
-        placeholder="Enter player name"
-        value={player}
-        onChange={(e) => setPlayer(e.target.value)}
-        className="flex-1"
-      />
-      <Button type="submit" disabled={loading || !player.trim()}>
-        <Search className="w-4 h-4 mr-2" />
-        Search
-      </Button>
+    <form onSubmit={handleSubmit} className="relative">
+      <div className="glass rounded-2xl p-2 flex items-center gap-2 hover:bg-white/10 transition-colors">
+        <div className="pl-4">
+          <Search className="w-5 h-5 text-gray-400" />
+        </div>
+        <input
+          type="text"
+          placeholder="Search for a player..."
+          value={player}
+          onChange={(e) => setPlayer(e.target.value)}
+          className="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none py-3 px-2 text-lg"
+        />
+        <Button
+          type="submit"
+          disabled={loading || !player.trim()}
+          className="px-6 py-3 rounded-xl"
+        >
+          {loading ? (
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <>
+              <Search className="w-4 h-4 mr-2" />
+              Search
+            </>
+          )}
+        </Button>
+      </div>
     </form>
   );
 }

@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ParserDashboard } from './pages/ParserDashboard';
 import { StatsDashboard } from './pages/StatsDashboard';
-import { ApiExplorer } from './pages/ApiExplorer';
-import { BackendControlPanel } from './components/backend/BackendControlPanel';
-import { Settings, Database, BarChart3, Code2, Server } from 'lucide-react';
+import { SettingsPage } from './pages/SettingsPage';
+import { BarChart3, Settings } from 'lucide-react';
+import { getPokemonSpriteUrl } from './utils/pokemonSprites';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,41 +14,38 @@ const queryClient = new QueryClient({
   },
 });
 
-type Page = 'parser' | 'stats' | 'api' | 'backend';
+type Page = 'stats' | 'settings';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('parser');
+  const [currentPage, setCurrentPage] = useState<Page>('stats');
   
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen text-white">
         <div className="flex">
           {/* Sidebar */}
-          <aside className="w-64 bg-gray-800 min-h-screen p-4 border-r border-gray-700">
+          <aside className="sidebar w-64 min-h-screen p-4 flex flex-col">
             <div className="mb-8">
-              <h1 className="text-2xl font-bold text-pokemon-red">SdTracker</h1>
-              <p className="text-sm text-gray-400 mt-1">Pokemon Showdown Tracker</p>
+              <div className="flex items-center gap-3">
+                <img
+                  src={getPokemonSpriteUrl('lunala')}
+                  alt="Lunala"
+                  className="w-12 h-12 pokemon-sprite animate-float"
+                />
+                <h1 className="text-3xl font-bold text-lunala-primary">
+                  SdTracker
+                </h1>
+              </div>
+              <p className="text-sm text-gray-400 mt-1 ml-15">Pokemon Showdown Tracker</p>
             </div>
             
-            <nav className="space-y-2">
-              <button
-                onClick={() => setCurrentPage('parser')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  currentPage === 'parser'
-                    ? 'bg-pokemon-red text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                <Database className="w-5 h-5" />
-                <span>Parser Dashboard</span>
-              </button>
-              
+            <nav className="space-y-2 flex-1">
               <button
                 onClick={() => setCurrentPage('stats')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 transition-colors ${
                   currentPage === 'stats'
-                    ? 'bg-pokemon-red text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
+                    ? 'active text-white'
+                    : 'text-gray-300'
                 }`}
               >
                 <BarChart3 className="w-5 h-5" />
@@ -57,44 +53,29 @@ function App() {
               </button>
               
               <button
-                onClick={() => setCurrentPage('api')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  currentPage === 'api'
-                    ? 'bg-pokemon-red text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
+                onClick={() => setCurrentPage('settings')}
+                className={`sidebar-item w-full flex items-center gap-3 px-4 py-3 transition-colors ${
+                  currentPage === 'settings'
+                    ? 'active text-white'
+                    : 'text-gray-300'
                 }`}
               >
-                <Code2 className="w-5 h-5" />
-                <span>API Explorer</span>
-              </button>
-
-              <button
-                onClick={() => setCurrentPage('backend')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  currentPage === 'backend'
-                    ? 'bg-pokemon-red text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                <Server className="w-5 h-5" />
-                <span>Backend Control</span>
-              </button>
-            </nav>
-            
-            <div className="absolute bottom-4 left-4 right-4">
-              <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-gray-700 transition-colors">
                 <Settings className="w-5 h-5" />
                 <span>Settings</span>
               </button>
+            </nav>
+            
+            <div className="mt-auto pt-4 border-t border-gray-700">
+              <p className="text-xs text-gray-500 text-center">
+                © 2024 SdTracker
+              </p>
             </div>
           </aside>
           
           {/* Main Content */}
-          <main className="flex-1 p-8">
-            {currentPage === 'parser' && <ParserDashboard />}
+          <main className="flex-1 p-8 overflow-auto">
             {currentPage === 'stats' && <StatsDashboard />}
-            {currentPage === 'api' && <ApiExplorer />}
-            {currentPage === 'backend' && <BackendControlPanel />}
+            {currentPage === 'settings' && <SettingsPage />}
           </main>
         </div>
       </div>

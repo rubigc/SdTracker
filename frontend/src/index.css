@@ -1,36 +1,366 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Configure Tailwind v4 with Lunala Psychic/Ghost theme */
+@theme {
+  /* Lunala-inspired color palette */
+  --color-lunala-primary: #6A0DAD;      /* Deep purple */
+  --color-lunala-secondary: #4B0082;    /* Indigo */
+  --color-lunala-accent: #FFD700;       /* Gold */
+  --color-lunala-light: #E6E6FA;        /* Lavender */
+  --color-lunala-dark: #191970;         /* Midnight blue */
+  --color-lunala-darker: #0f0f1a;       /* Deep space */
+  --color-lunala-card: #1a1a2e;         /* Dark purple-blue */
+  --color-lunala-glow: #9370DB;         /* Medium purple */
+  
+  /* Pokemon colors (legacy support) */
+  --color-pokemon-red: #6A0DAD;
+  --color-pokemon-blue: #4B0082;
+  --color-pokemon-yellow: #FFD700;
+  --color-pokemon-green: #00AC00;
+  --color-pokemon-dark: #1a1a2e;
+  --color-pokemon-darker: #16213e;
+  --color-pokemon-card: #0f3460;
+  --color-pokemon-light: #E6E6FA;
+  
+  /* Pokemon type colors */
+  --color-type-normal: #A8A77A;
+  --color-type-fire: #EE8130;
+  --color-type-water: #6390F0;
+  --color-type-electric: #F7D02C;
+  --color-type-grass: #7AC74C;
+  --color-type-ice: #96D9D6;
+  --color-type-fighting: #C22E28;
+  --color-type-poison: #A33EA1;
+  --color-type-ground: #E2BF65;
+  --color-type-flying: #A98FF3;
+  --color-type-psychic: #F95587;
+  --color-type-bug: #A6B91A;
+  --color-type-rock: #B6A136;
+  --color-type-ghost: #735797;
+  --color-type-dragon: #6F35FC;
+  --color-type-dark: #705746;
+  --color-type-steel: #B7B7CE;
+  --color-type-fairy: #D685AD;
+  
+  /* Custom shadows with Lunala theme */
+  --shadow-glow: 0 0 20px rgba(106, 13, 173, 0.4);
+  --shadow-glow-blue: 0 0 20px rgba(75, 0, 130, 0.4);
+  --shadow-glow-green: 0 0 20px rgba(0, 172, 0, 0.3);
+  --shadow-glow-gold: 0 0 20px rgba(255, 215, 0, 0.4);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  --shadow-card-hover: 0 10px 15px -3px rgba(106, 13, 173, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+  
+  /* Custom animations */
+  --animate-fade-in: fade-in 0.3s ease-in-out;
+  --animate-slide-up: slide-up 0.4s ease-out;
+  --animate-slide-down: slide-down 0.3s ease-out;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-float: float 3s ease-in-out infinite;
+  
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slide-up {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes slide-down {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@layer base {
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+      sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: linear-gradient(135deg, #0f0f1a 0%, #191970 30%, #1a1a2e 70%, #16213e 100%);
+    min-height: 100vh;
+  }
+
+  code {
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+      monospace;
+  }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+@layer components {
+  /* Glassmorphism effect with Lunala theme */
+  .glass {
+    background: rgba(106, 13, 173, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(106, 13, 173, 0.15);
+  }
+
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(106, 13, 173, 0.1);
+  }
+
+  /* Card styles with Lunala theme */
+  .card-modern {
+    background: linear-gradient(145deg, #1a1a2e 0%, #191970 100%);
+    border: 1px solid rgba(106, 13, 173, 0.2);
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+  }
+
+  .card-modern:hover {
+    box-shadow: 0 10px 15px -3px rgba(106, 13, 173, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
+    border-color: rgba(106, 13, 173, 0.4);
+  }
+
+  /* Pokemon sprite styles */
+  .pokemon-sprite {
+    image-rendering: pixelated;
+    transition: transform 0.3s ease, filter 0.3s ease;
+  }
+
+  .pokemon-sprite:hover {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 10px rgba(106, 13, 173, 0.6));
+  }
+
+  /* Progress bar styles */
+  .progress-bar {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.5s ease-out;
+  }
+
+  /* Tab styles with Lunala theme */
+  .tab-button {
+    position: relative;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    color: #9ca3af;
+    transition: all 0.3s ease;
+    border-bottom: 2px solid transparent;
+  }
+
+  .tab-button:hover {
+    color: #ffffff;
+  }
+
+  .tab-button.active {
+    color: #ffffff;
+    border-bottom-color: #6A0DAD;
+  }
+
+  .tab-button.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #6A0DAD, #9370DB);
+    box-shadow: 0 0 10px rgba(106, 13, 173, 0.5);
+  }
+
+  /* Type badge styles */
+  .type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Win rate indicator */
+  .win-rate-high {
+    color: #4ade80;
+    text-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+  }
+
+  .win-rate-medium {
+    color: #facc15;
+    text-shadow: 0 0 10px rgba(250, 204, 21, 0.5);
+  }
+
+  .win-rate-low {
+    color: #f87171;
+    text-shadow: 0 0 10px rgba(248, 113, 113, 0.5);
+  }
+
+  /* Sidebar styles with Lunala theme */
+  .sidebar {
+    background: linear-gradient(180deg, #191970 0%, #1a1a2e 50%, #16213e 100%);
+    border-right: 1px solid rgba(106, 13, 173, 0.2);
+  }
+
+  .sidebar-item {
+    transition: all 0.3s ease;
+    border-radius: 0.75rem;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(106, 13, 173, 0.15);
+    transform: translateX(4px);
+  }
+
+  .sidebar-item.active {
+    background: linear-gradient(135deg, rgba(106, 13, 173, 0.3) 0%, rgba(75, 0, 130, 0.2) 100%);
+    border-left: 3px solid #6A0DAD;
+  }
+
+  /* Match card styles */
+  .match-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #191970 100%);
+    border: 1px solid rgba(106, 13, 173, 0.2);
+    border-radius: 1rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+
+  .match-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(106, 13, 173, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+  }
+
+  .match-card.winner {
+    border-color: rgba(74, 222, 128, 0.5);
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.2);
+  }
+
+  .match-card.loser {
+    border-color: rgba(248, 113, 113, 0.5);
+  }
+
+  /* Pokemon grid */
+  .pokemon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+  }
+
+  .pokemon-card {
+    background: linear-gradient(145deg, #1a1a2e 0%, #191970 100%);
+    border: 1px solid rgba(106, 13, 173, 0.2);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+  }
+
+  .pokemon-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    border-color: rgba(106, 13, 173, 0.4);
+    box-shadow: 0 10px 20px rgba(106, 13, 173, 0.2);
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    background: linear-gradient(90deg, #1a1a2e 25%, #191970 50%, #1a1a2e 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+  }
+
+  @keyframes skeleton-loading {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Glow effects with Lunala theme */
+  .glow-red {
+    box-shadow: 0 0 20px rgba(106, 13, 173, 0.4);
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 20px rgba(75, 0, 130, 0.4);
+  }
+
+  .glow-green {
+    box-shadow: 0 0 20px rgba(0, 172, 0, 0.3);
+  }
+
+  .glow-gold {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  }
+
+  /* Circular progress */
+  .circular-progress {
+    position: relative;
+    width: 120px;
+    height: 120px;
+  }
+
+  .circular-progress svg {
+    transform: rotate(-90deg);
+  }
+
+  .circular-progress .progress-ring {
+    stroke-dasharray: 283;
+    stroke-dashoffset: 283;
+    transition: stroke-dashoffset 0.5s ease-out;
+  }
+
+  .circular-progress .progress-ring-bg {
+    stroke: rgba(255, 255, 255, 0.1);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: #1f2937;
-}
+@layer utilities {
+  /* Custom scrollbar with Lunala theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: #4b5563;
-  border-radius: 4px;
-}
+  ::-webkit-scrollbar-track {
+    background: #1a1a2e;
+    border-radius: 4px;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #6b7280;
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #6A0DAD 0%, #4B0082 100%);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #9370DB 0%, #6A0DAD 100%);
+  }
+
+  /* Text selection with Lunala theme */
+  ::selection {
+    background: rgba(106, 13, 173, 0.3);
+    color: white;
+  }
+
+  /* Focus styles with Lunala theme */
+  *:focus-visible {
+    outline: 2px solid #6A0DAD;
+    outline-offset: 2px;
+  }
 }

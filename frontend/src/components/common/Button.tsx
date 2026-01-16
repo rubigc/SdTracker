@@ -13,10 +13,10 @@ export function Button({
   children, 
   ...props 
 }: ButtonProps) {
-  const baseStyles = 'font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseStyles = 'inline-flex items-center justify-center font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variants = {
-    primary: 'bg-pokemon-red hover:bg-red-700 text-white focus:ring-red-500',
+    primary: 'bg-lunala-primary hover:bg-lunala-secondary text-white focus:ring-lunala-primary',
     secondary: 'bg-gray-700 hover:bg-gray-600 text-white focus:ring-gray-500',
     danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
     success: 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500',
