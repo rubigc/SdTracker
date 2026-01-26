@@ -41,7 +41,28 @@ impl Database {
         Ok(Database { conn })
     }
 
-    pub fn get_overall_winrate(&self, player_name: &str) -> Result<WinrateResult> {
+    pub fn get_overall_winrate(&self, player_name: &str, account_id: i64, team_id: Option<i64>) -> Result<WinrateResult> {
+        if let Some(team_id) = team_id {
+            let mut stmt = self.conn.prepare_cached(
+                "SELECT
+                  SUM(CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END) AS wins,
+                  COUNT(*) AS total
+                 FROM team_usage tu
+                 JOIN games g ON tu.game_id = g.id
+                 JOIN game_players gp ON g.id = gp.game_id AND gp.player_name = ?1
+                 WHERE tu.account_id = ?2 AND tu.team_id = ?3"
+            )?;
+
+            let result = stmt.query_row(params![player_name, account_id, team_id], |row| {
+                Ok(WinrateResult {
+                    wins: row.get(0)?,
+                    total: row.get(1)?,
+                })
+            })?;
+
+            return Ok(result);
+        }
+
         let mut stmt = self.conn.prepare_cached(
             "SELECT 
               (SELECT COUNT(*) FROM games
@@ -60,7 +81,32 @@ impl Database {
         Ok(result)
     }
 
-    pub fn get_bo3_winrate(&self, player_name: &str) -> Result<Bo3WinrateResult> {
+    pub fn get_bo3_winrate(&self, player_name: &str, account_id: i64, team_id: Option<i64>) -> Result<Bo3WinrateResult> {
+        if let Some(team_id) = team_id {
+            let mut stmt = self.conn.prepare_cached(
+                "SELECT 
+                  SUM(CASE WHEN match_winner = p_index THEN 1 ELSE 0 END) AS wins,
+                  COUNT(*) AS total
+                 FROM (
+                   SELECT DISTINCT m.id, m.winner AS match_winner,
+                          CASE WHEN m.player1 = ?1 THEN 1 ELSE 2 END AS p_index
+                   FROM matches m
+                   JOIN games g ON g.match_id = m.id
+                   JOIN team_usage tu ON tu.game_id = g.id AND tu.team_id = ?2 AND tu.account_id = ?3
+                   WHERE m.player1 = ?1 OR m.player2 = ?1
+                 ) filtered"
+            )?;
+
+            let result = stmt.query_row(params![player_name, team_id, account_id], |row| {
+                Ok(Bo3WinrateResult {
+                    wins: row.get(0)?,
+                    total: row.get(1)?,
+                })
+            })?;
+
+            return Ok(result);
+        }
+
         let mut stmt = self.conn.prepare_cached(
             "SELECT 
               SUM(CASE WHEN m.winner = p_index THEN 1 ELSE 0 END) AS wins,
@@ -82,7 +128,34 @@ impl Database {
         Ok(result)
     }
 
-    pub fn get_bo3_game_winrates(&self, player_name: &str) -> Result<Vec<Bo3GameWinrateResult>> {
+    pub fn get_bo3_game_winrates(&self, player_name: &str, account_id: i64, team_id: Option<i64>) -> Result<Vec<Bo3GameWinrateResult>> {
+        if let Some(team_id) = team_id {
+            let mut stmt = self.conn.prepare_cached(
+                "SELECT 
+                  g.game_number,
+                  COUNT(*) AS total,
+                  SUM(CASE WHEN g.winner = ?1 THEN 1 ELSE 0 END) AS wins
+                FROM games g
+                JOIN team_usage tu ON tu.game_id = g.id AND tu.team_id = ?2 AND tu.account_id = ?3
+                WHERE g.match_id IN (
+                  SELECT id FROM matches 
+                  WHERE player1 = ?1 OR player2 = ?1
+                )
+                GROUP BY g.game_number
+                ORDER BY g.game_number"
+            )?;
+
+            let results = stmt.query_map(params![player_name, team_id, account_id], |row| {
+                Ok(Bo3GameWinrateResult {
+                    game_number: row.get(0)?,
+                    total: row.get(1)?,
+                    wins: row.get(2)?,
+                })
+            })?.collect::<Result<Vec<_>>>()?;
+
+            return Ok(results);
+        }
+
         let mut stmt = self.conn.prepare_cached(
             "SELECT 
               game_number,
@@ -108,21 +181,38 @@ impl Database {
         Ok(results)
     }
 
-    pub fn get_lead_stats(&self, player_name: &str) -> Result<Vec<StatResult>> {
-        // First, get all the raw lead data with wins
-        let mut stmt = self.conn.prepare_cached(
-            "SELECT
-              lead_pokemon,
-              CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END AS won
-            FROM game_players gp
-            JOIN games g ON gp.game_id = g.id
-            WHERE gp.player_name = ?1
-              AND lead_pokemon IS NOT NULL
-              AND lead_pokemon != ''"
-        )?;
+    pub fn get_lead_stats(&self, player_name: &str, account_id: i64, team_id: Option<i64>) -> Result<Vec<StatResult>> {
+        let (query, params) = if let Some(team_id) = team_id {
+            (
+                "SELECT
+                  gp.lead_pokemon,
+                  CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END AS won
+                 FROM game_players gp
+                 JOIN games g ON gp.game_id = g.id
+                 JOIN team_usage tu ON tu.game_id = gp.game_id AND tu.team_id = ?2 AND tu.account_id = ?3
+                 WHERE gp.player_name = ?1
+                   AND lead_pokemon IS NOT NULL
+                   AND lead_pokemon != ''",
+                params![player_name, team_id, account_id],
+            )
+        } else {
+            (
+                "SELECT
+                  lead_pokemon,
+                  CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END AS won
+                 FROM game_players gp
+                 JOIN games g ON gp.game_id = g.id
+                 WHERE gp.player_name = ?1
+                   AND lead_pokemon IS NOT NULL
+                   AND lead_pokemon != ''",
+                params![player_name],
+            )
+        };
+
+        let mut stmt = self.conn.prepare_cached(query)?;
 
         // Collect raw data
-        let raw_data: Vec<(String, i64)> = stmt.query_map(params![player_name], |row| {
+        let raw_data: Vec<(String, i64)> = stmt.query_map(params, |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
         })?.collect::<Result<Vec<_>>>()?;
 
@@ -155,17 +245,33 @@ impl Database {
         Ok(results)
     }
 
-    pub fn get_tera_stats(&self, player_name: &str) -> Result<Vec<StatResult>> {
-        let mut stmt = self.conn.prepare_cached(
-            "SELECT tera_used AS tera_type, COUNT(*) AS total,
-              SUM(CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END) AS wins
-            FROM game_players gp
-            JOIN games g ON gp.game_id = g.id
-            WHERE gp.player_name = ?1 AND tera_used IS NOT NULL AND tera_used != ''
-            GROUP BY tera_used"
-        )?;
+    pub fn get_tera_stats(&self, player_name: &str, account_id: i64, team_id: Option<i64>) -> Result<Vec<StatResult>> {
+        let (query, params) = if let Some(team_id) = team_id {
+            (
+                "SELECT tera_used AS tera_type, COUNT(*) AS total,
+                  SUM(CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END) AS wins
+                 FROM game_players gp
+                 JOIN games g ON gp.game_id = g.id
+                 JOIN team_usage tu ON tu.game_id = gp.game_id AND tu.team_id = ?2 AND tu.account_id = ?3
+                 WHERE gp.player_name = ?1 AND tera_used IS NOT NULL AND tera_used != ''
+                 GROUP BY tera_used",
+                params![player_name, team_id, account_id],
+            )
+        } else {
+            (
+                "SELECT tera_used AS tera_type, COUNT(*) AS total,
+                  SUM(CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END) AS wins
+                 FROM game_players gp
+                 JOIN games g ON gp.game_id = g.id
+                 WHERE gp.player_name = ?1 AND tera_used IS NOT NULL AND tera_used != ''
+                 GROUP BY tera_used",
+                params![player_name],
+            )
+        };
 
-        let results = stmt.query_map(params![player_name], |row| {
+        let mut stmt = self.conn.prepare_cached(query)?;
+
+        let results = stmt.query_map(params, |row| {
             Ok(StatResult {
                 pokemon: None,
                 tera_type: row.get(0)?,
@@ -177,20 +283,39 @@ impl Database {
         Ok(results)
     }
 
-    pub fn get_history(&self, player_name: &str) -> Result<Vec<HistoryResult>> {
-        let mut stmt = self.conn.prepare_cached(
-            "SELECT g.id AS game_id, g.game_number, g.winner,
-                   gp.team_pokemon AS player_team, gp.lead_pokemon AS player_lead, gp.tera_used AS player_tera,
-                   opp.player_name AS opponent, opp.team_pokemon AS opponent_team, opp.lead_pokemon AS opponent_lead, opp.tera_used AS opponent_tera
-             FROM games g
-             JOIN matches m ON g.match_id = m.id
-             JOIN game_players gp ON g.id = gp.game_id AND gp.player_name = ?1
-             JOIN game_players opp ON g.id = opp.game_id AND opp.player_name != ?2
-             ORDER BY g.id DESC
-             LIMIT 100"
-        )?;
+    pub fn get_history(&self, player_name: &str, account_id: i64, team_id: Option<i64>) -> Result<Vec<HistoryResult>> {
+        let (query, params) = if let Some(team_id) = team_id {
+            (
+                "SELECT g.id AS game_id, g.game_number, g.winner,
+                       gp.team_pokemon AS player_team, gp.lead_pokemon AS player_lead, gp.tera_used AS player_tera,
+                       opp.player_name AS opponent, opp.team_pokemon AS opponent_team, opp.lead_pokemon AS opponent_lead, opp.tera_used AS opponent_tera
+                 FROM games g
+                 JOIN matches m ON g.match_id = m.id
+                 JOIN team_usage tu ON tu.game_id = g.id AND tu.team_id = ?2 AND tu.account_id = ?3
+                 JOIN game_players gp ON g.id = gp.game_id AND gp.player_name = ?1
+                 JOIN game_players opp ON g.id = opp.game_id AND opp.player_name != ?1
+                 ORDER BY g.id DESC
+                 LIMIT 100",
+                params![player_name, team_id, account_id],
+            )
+        } else {
+            (
+                "SELECT g.id AS game_id, g.game_number, g.winner,
+                       gp.team_pokemon AS player_team, gp.lead_pokemon AS player_lead, gp.tera_used AS player_tera,
+                       opp.player_name AS opponent, opp.team_pokemon AS opponent_team, opp.lead_pokemon AS opponent_lead, opp.tera_used AS opponent_tera
+                 FROM games g
+                 JOIN matches m ON g.match_id = m.id
+                 JOIN game_players gp ON g.id = gp.game_id AND gp.player_name = ?1
+                 JOIN game_players opp ON g.id = opp.game_id AND opp.player_name != ?2
+                 ORDER BY g.id DESC
+                 LIMIT 100",
+                params![player_name, player_name],
+            )
+        };
 
-        let results = stmt.query_map(params![player_name, player_name], |row| {
+        let mut stmt = self.conn.prepare_cached(query)?;
+
+        let results = stmt.query_map(params, |row| {
             Ok(HistoryResult {
                 game_id: row.get(0)?,
                 game_number: row.get(1)?,
@@ -242,6 +367,25 @@ impl Database {
 
         let mut rows = stmt.query(params![name])?;
         
+        if let Some(row) = rows.next()? {
+            Ok(Some(Account {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                created_at: row.get(2)?,
+                is_active: row.get::<_, i32>(3)? == 1,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn get_account_by_id(&self, account_id: i64) -> Result<Option<Account>> {
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT id, name, created_at, is_active FROM accounts WHERE id = ?1"
+        )?;
+
+        let mut rows = stmt.query(params![account_id])?;
+
         if let Some(row) = rows.next()? {
             Ok(Some(Account {
                 id: row.get(0)?,

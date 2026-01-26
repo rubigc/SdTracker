@@ -31,7 +31,7 @@ export function TeraCard({ data, loading }: TeraCardProps) {
           <CardTitle>Tera Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-400">Search for a player to view Tera statistics</p>
+          <p className="text-gray-400">No Tera statistics available yet</p>
         </CardContent>
       </Card>
     );

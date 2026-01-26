@@ -2,8 +2,8 @@ import { invoke } from '@tauri-apps/api/core';
 import type { ParserStatus } from '../types';
 
 export const parserService = {
-  startParser: async (username: string): Promise<void> => {
-    await invoke('start_parser', { username });
+  startParser: async (): Promise<void> => {
+    await invoke('start_parser');
   },
   
   stopParser: async (): Promise<void> => {

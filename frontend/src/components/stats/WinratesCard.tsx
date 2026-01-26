@@ -31,7 +31,7 @@ export function WinratesCard({ data, loading }: WinratesCardProps) {
           <CardTitle>Winrates</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-400">Search for a player to view winrates</p>
+          <p className="text-gray-400">Select an account to view winrates</p>
         </CardContent>
       </Card>
     );

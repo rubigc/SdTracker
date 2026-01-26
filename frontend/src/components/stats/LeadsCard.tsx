@@ -31,7 +31,7 @@ export function LeadsCard({ data, loading }: LeadsCardProps) {
           <CardTitle>Lead Statistics</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-400">Search for a player to view lead statistics</p>
+          <p className="text-gray-400">No lead statistics available yet</p>
         </CardContent>
       </Card>
     );

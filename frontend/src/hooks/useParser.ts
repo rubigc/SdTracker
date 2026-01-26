@@ -12,7 +12,7 @@ export function useParser() {
   });
   
   const startMutation = useMutation({
-    mutationFn: (username: string) => parserService.startParser(username),
+    mutationFn: () => parserService.startParser(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['parser', 'status'] });
     },

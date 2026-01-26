@@ -1,16 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
 import { StatusIndicator } from '../common/StatusIndicator';
 import { useParser } from '../../hooks/useParser';
 import { useAutoStartEnabled } from '../../hooks/useAutoStartEnabled';
-import { getStoredUsername, setStoredUsername } from '../../utils/autostart';
 import { Upload, FileText, Link } from 'lucide-react';
 
 type InputMethod = 'url' | 'file' | 'paste';
 
 export function ParserControlPanel() {
-  const [username, setUsername] = useState('');
   const [inputMethod, setInputMethod] = useState<InputMethod>('url');
   const [url, setUrl] = useState('');
   const [htmlContent, setHtmlContent] = useState('');
@@ -22,20 +20,9 @@ export function ParserControlPanel() {
   
   const { status, isLoading, startParser, stopParser, isStarting, isStopping } = useParser();
   const autoStartEnabled = useAutoStartEnabled();
-  
-  useEffect(() => {
-    const savedUsername = getStoredUsername();
-    if (savedUsername) {
-      setUsername(savedUsername);
-    }
-  }, []);
 
   const handleStart = () => {
-    const trimmedUsername = username.trim();
-    if (trimmedUsername) {
-      setStoredUsername(trimmedUsername);
-      startParser(trimmedUsername);
-    }
+    startParser();
   };
   
   const handleStop = () => {
@@ -256,7 +243,7 @@ export function ParserControlPanel() {
                 onChange={(e) => setHtmlContent(e.target.value)}
                 disabled={uploadStatus === 'uploading'}
                 placeholder="Paste HTML content of your replay here..."
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white min-h-[300px] resize-y"
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white min-h-75 resize-y"
               />
             </div>
             <Button
@@ -284,39 +271,29 @@ export function ParserControlPanel() {
         )}
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          label="Pokemon Showdown Username"
-          placeholder="Enter your username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          disabled={isRunning}
-        />
-        
-        <div className="flex items-end gap-2">
-          {isRunning ? (
-            <Button
-              onClick={handleStop}
-              disabled={isStopping}
-              className="w-full"
-              variant="danger"
-            >
-              {isStopping ? 'Stopping...' : 'Stop'}
-            </Button>
-          ) : !autoStartEnabled || !username.trim() ? (
-            <Button
-              onClick={handleStart}
-              disabled={!username.trim() || isStarting}
-              className="w-full"
-              variant="success"
-            >
-              {isStarting ? 'Starting...' : 'Start'}
-            </Button>
-          ) : null}
-        </div>
+      <div className="flex items-end">
+        {isRunning ? (
+          <Button
+            onClick={handleStop}
+            disabled={isStopping}
+            className="w-full"
+            variant="danger"
+          >
+            {isStopping ? 'Stopping...' : 'Stop'}
+          </Button>
+        ) : (
+          <Button
+            onClick={handleStart}
+            disabled={isStarting}
+            className="w-full"
+            variant="success"
+          >
+            {isStarting ? 'Starting...' : 'Start'}
+          </Button>
+        )}
       </div>
       
-      {autoStartEnabled && !isRunning && username.trim() && (
+      {autoStartEnabled && !isRunning && (
         <p className="text-sm text-gray-400">
           Auto-start enabled. The parser will start when the app launches.
         </p>
@@ -325,10 +302,8 @@ export function ParserControlPanel() {
       {status && showDetails && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
           <div className="bg-gray-700 rounded-lg p-4">
-            <p className="text-sm text-gray-400">Username</p>
-            <p className="text-lg font-semibold text-white">
-              {status.username || 'Not set'}
-            </p>
+            <p className="text-sm text-gray-400">Mode</p>
+            <p className="text-lg font-semibold text-white">Teams</p>
           </div>
           <div className="bg-gray-700 rounded-lg p-4">
             <p className="text-sm text-gray-400">Port</p>

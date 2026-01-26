@@ -91,13 +91,13 @@ export function PokemonThemeSelector() {
               placeholder="Search Pokemon by name or ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--theme-primary)]"
+              className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-(--theme-primary)"
             />
           </div>
           <button
             onClick={selectRandomPokemon}
             disabled={isExtracting}
-            className="px-4 py-2 bg-[var(--theme-primary)] hover:bg-[var(--theme-secondary)] text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-(--theme-primary) hover:bg-(--theme-secondary) text-white rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Shuffle className="w-5 h-5" />
             <span className="hidden sm:inline">Random</span>
@@ -112,7 +112,7 @@ export function PokemonThemeSelector() {
           {!searchQuery && filteredPokemon.length < allPokemon.length && (
             <button
               onClick={loadMore}
-              className="text-[var(--theme-primary)] hover:text-[var(--theme-accent)] transition-colors"
+              className="text-(--theme-primary) hover:text-(--theme-accent) transition-colors"
             >
               Load More
             </button>
@@ -134,7 +134,7 @@ export function PokemonThemeSelector() {
               className={`
                 relative p-2 rounded-lg border-2 transition-all duration-200
                 ${isSelected 
-                  ? 'border-[var(--theme-primary)] bg-[var(--theme-card)]' 
+                  ? 'border-(--theme-primary) bg-(--theme-card)' 
                   : 'border-gray-700 bg-gray-800 hover:border-gray-600'
                 }
                 disabled:opacity-50 disabled:cursor-not-allowed
@@ -153,7 +153,7 @@ export function PokemonThemeSelector() {
                 
                 {/* Selection Checkmark */}
                 {isSelected && (
-                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-[var(--theme-primary)] rounded-full flex items-center justify-center">
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-(--theme-primary) rounded-full flex items-center justify-center">
                     <Check className="w-3 h-3 text-white" />
                   </div>
                 )}
@@ -172,7 +172,7 @@ export function PokemonThemeSelector() {
       {isExtracting && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-xl text-center">
-            <div className="animate-spin w-12 h-12 border-4 border-[var(--theme-primary)] border-t-transparent rounded-full mx-auto mb-4" />
+            <div className="animate-spin w-12 h-12 border-4 border-(--theme-primary) border-t-transparent rounded-full mx-auto mb-4" />
             <p className="text-white">Extracting colors from sprite...</p>
           </div>
         </div>
@@ -180,7 +180,7 @@ export function PokemonThemeSelector() {
 
       {/* Current Theme Preview */}
       {selectedPokemon && extractedColors.has(selectedPokemon) && (
-        <div className="mt-8 p-6 rounded-xl bg-[var(--theme-card)] border border-gray-700">
+        <div className="mt-8 p-6 rounded-xl bg-(--theme-card) border border-gray-700">
           <h3 className="text-lg font-semibold text-white mb-4">Current Theme: {selectedPokemon.charAt(0).toUpperCase() + selectedPokemon.slice(1)}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>

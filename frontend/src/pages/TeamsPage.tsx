@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
-import type { Account, Team, CreateAccountRequest, CreateTeamRequest } from '../types';
+import type { Account, Team } from '../types';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
@@ -255,7 +255,7 @@ export function TeamsPage() {
               placeholder="Paste your team data here (from Pokemon Showdown)"
               value={newTeamData}
               onChange={(e) => setNewTeamData(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white mb-4 min-h-[200px] resize-y"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white mb-4 min-h-50 resize-y"
             />
             <div className="flex gap-2">
               <Button onClick={handleCreateTeam} disabled={createTeamMutation.isPending}>

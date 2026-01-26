@@ -1,5 +1,4 @@
 const AUTO_START_KEY = 'sdtracker.autostart';
-const USERNAME_KEY = 'sdtracker.username';
 
 function notifyAutoStartChanged() {
   window.dispatchEvent(new Event('sdtracker-autostart-changed'));
@@ -18,14 +17,5 @@ export function getAutoStartEnabled(): boolean {
 
 export function setAutoStartEnabled(enabled: boolean) {
   localStorage.setItem(AUTO_START_KEY, enabled ? 'true' : 'false');
-  notifyAutoStartChanged();
-}
-
-export function getStoredUsername(): string {
-  return localStorage.getItem(USERNAME_KEY) ?? '';
-}
-
-export function setStoredUsername(username: string) {
-  localStorage.setItem(USERNAME_KEY, username);
   notifyAutoStartChanged();
 }

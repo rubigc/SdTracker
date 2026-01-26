@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { PlayerSearch } from '../components/stats/PlayerSearch';
 import { WinratesCard } from '../components/stats/WinratesCard';
 import { LeadsCard } from '../components/stats/LeadsCard';
 import { TeraCard } from '../components/stats/TeraCard';
@@ -14,15 +13,14 @@ import { BarChart3, History, Zap, Filter } from 'lucide-react';
 type StatsTab = 'stats' | 'history' | 'moves';
 
 export function StatsDashboard() {
-  const [selectedPlayer, setSelectedPlayer] = useState('');
   const [activeTab, setActiveTab] = useState<StatsTab>('stats');
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   
-  const { data: winrates, isLoading: winratesLoading } = usePlayerStats(selectedPlayer);
-  const { data: leads, isLoading: leadsLoading } = useLeadStats(selectedPlayer);
-  const { data: tera, isLoading: teraLoading } = useTeraStats(selectedPlayer);
-  const { data: history, isLoading: historyLoading } = useGameHistory(selectedPlayer);
+  const { data: winrates, isLoading: winratesLoading } = usePlayerStats(selectedAccount?.id, selectedTeam?.id);
+  const { data: leads, isLoading: leadsLoading } = useLeadStats(selectedAccount?.id, selectedTeam?.id);
+  const { data: tera, isLoading: teraLoading } = useTeraStats(selectedAccount?.id, selectedTeam?.id);
+  const { data: history, isLoading: historyLoading } = useGameHistory(selectedAccount?.id, selectedTeam?.id);
   
   // Fetch accounts for filtering
   const { data: accounts } = useQuery({
@@ -37,8 +35,6 @@ export function StatsDashboard() {
     enabled: !!selectedAccount,
   });
   
-  const isLoading = winratesLoading || leadsLoading || teraLoading || historyLoading;
-  
   const handleClearFilters = () => {
     setSelectedAccount(null);
     setSelectedTeam(null);
@@ -49,7 +45,7 @@ export function StatsDashboard() {
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Statistics Dashboard</h1>
         <p className="text-gray-400">
-          View detailed statistics and game history for any player
+          View detailed statistics and game history by account and team
         </p>
       </div>
       
@@ -113,12 +109,7 @@ export function StatsDashboard() {
         </div>
       )}
       
-      <PlayerSearch 
-        onSearch={setSelectedPlayer}
-        loading={isLoading}
-      />
-      
-      {selectedPlayer && (
+      {selectedAccount && (
         <>
           {/* Tab Navigation */}
           <div className="flex gap-2 border-b border-gray-700">
@@ -173,12 +164,12 @@ export function StatsDashboard() {
         </>
       )}
       
-      {!selectedPlayer && (
+      {!selectedAccount && (
         <div className="card-modern p-12 text-center">
-          <div className="text-6xl mb-4">🔍</div>
-          <h3 className="text-xl font-semibold text-white mb-2">Search for a Player</h3>
+          <div className="text-6xl mb-4">👥</div>
+          <h3 className="text-xl font-semibold text-white mb-2">Select an Account</h3>
           <p className="text-gray-400">
-            Enter a player name above to view their statistics and match history
+            Choose an account to view team-based stats and match history
           </p>
         </div>
       )}

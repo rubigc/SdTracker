@@ -44,23 +44,19 @@ export function ParserDashboard() {
               Click "Start" to run the API server on port 3001
             </p>
             <p>
-              <strong className="text-white">2. Enter your Pokemon Showdown username</strong> - 
-              This is the username you use on Pokemon Showdown
-            </p>
-            <p>
-              <strong className="text-white">3. Click "Start Parser"</strong> - 
+              <strong className="text-white">2. Click "Start Parser"</strong> - 
               This will start the parser process on port 8098
             </p>
             <p>
-              <strong className="text-white">4. Configure Pokemon Showdown</strong> - 
+              <strong className="text-white">3. Configure Pokemon Showdown</strong> - 
               Set the replay URL to send to http://localhost:8098/receive-logs
             </p>
             <p>
-              <strong className="text-white">5. Upload manually (optional)</strong> - 
+              <strong className="text-white">4. Upload manually (optional)</strong> - 
               Use the URL, file upload, or paste HTML tabs in Parser Control
             </p>
             <p>
-              <strong className="text-white">6. View statistics</strong> - 
+              <strong className="text-white">5. View statistics</strong> - 
               Navigate to the Statistics Dashboard to view your game statistics
             </p>
           </CardContent>

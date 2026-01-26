@@ -32,7 +32,7 @@ export function HistoryCard({ data, loading }: HistoryCardProps) {
           <CardTitle>Game History</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-400">Search for a player to view game history</p>
+          <p className="text-gray-400">No game history available yet</p>
         </CardContent>
       </Card>
     );
@@ -44,7 +44,7 @@ export function HistoryCard({ data, loading }: HistoryCardProps) {
         <CardTitle>Game History</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+        <div className="space-y-4 max-h-150 overflow-y-auto pr-2">
           {data.map((game) => {
             const isPlayerWinner = game.winner === game.player.name;
             

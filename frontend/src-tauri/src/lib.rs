@@ -8,10 +8,9 @@ use tokio::sync::Mutex;
 
 #[tauri::command]
 async fn start_parser(
-    username: String,
     manager: tauri::State<'_, Arc<ParserManager>>,
 ) -> Result<(), String> {
-    manager.start(username)
+    manager.start()
 }
 
 #[tauri::command]

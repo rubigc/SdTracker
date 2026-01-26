@@ -15,32 +15,44 @@ import type {
 const API_BASE = 'http://localhost:3001/api';
 
 export const api = {
-  getWinrates: async (player: string): Promise<WinrateStats> => {
-    const response = await fetch(`${API_BASE}/winrates/${player}`);
+  getWinrates: async (accountId: number, teamId?: number): Promise<WinrateStats> => {
+    const url = teamId
+      ? `${API_BASE}/accounts/${accountId}/winrates?team_id=${teamId}`
+      : `${API_BASE}/accounts/${accountId}/winrates`;
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch winrates: ${response.statusText}`);
     }
     return response.json();
   },
   
-  getLeadStats: async (player: string): Promise<LeadStat[]> => {
-    const response = await fetch(`${API_BASE}/leads/${player}`);
+  getLeadStats: async (accountId: number, teamId?: number): Promise<LeadStat[]> => {
+    const url = teamId
+      ? `${API_BASE}/accounts/${accountId}/leads?team_id=${teamId}`
+      : `${API_BASE}/accounts/${accountId}/leads`;
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch lead stats: ${response.statusText}`);
     }
     return response.json();
   },
   
-  getTeraStats: async (player: string): Promise<TeraStat[]> => {
-    const response = await fetch(`${API_BASE}/tera/${player}`);
+  getTeraStats: async (accountId: number, teamId?: number): Promise<TeraStat[]> => {
+    const url = teamId
+      ? `${API_BASE}/accounts/${accountId}/tera?team_id=${teamId}`
+      : `${API_BASE}/accounts/${accountId}/tera`;
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch tera stats: ${response.statusText}`);
     }
     return response.json();
   },
   
-  getHistory: async (player: string): Promise<HistoryGame[]> => {
-    const response = await fetch(`${API_BASE}/history/${player}`);
+  getHistory: async (accountId: number, teamId?: number): Promise<HistoryGame[]> => {
+    const url = teamId
+      ? `${API_BASE}/accounts/${accountId}/history?team_id=${teamId}`
+      : `${API_BASE}/accounts/${accountId}/history`;
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error(`Failed to fetch history: ${response.statusText}`);
     }

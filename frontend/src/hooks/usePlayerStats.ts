@@ -1,35 +1,34 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../services/api';
 
-
-export function usePlayerStats(player: string) {
+export function usePlayerStats(accountId?: number, teamId?: number) {
   return useQuery({
-    queryKey: ['player', player, 'winrates'],
-    queryFn: () => api.getWinrates(player),
-    enabled: !!player,
+    queryKey: ['account', accountId, 'winrates', teamId],
+    queryFn: () => api.getWinrates(accountId as number, teamId),
+    enabled: !!accountId,
   });
 }
 
-export function useLeadStats(player: string) {
+export function useLeadStats(accountId?: number, teamId?: number) {
   return useQuery({
-    queryKey: ['player', player, 'leads'],
-    queryFn: () => api.getLeadStats(player),
-    enabled: !!player,
+    queryKey: ['account', accountId, 'leads', teamId],
+    queryFn: () => api.getLeadStats(accountId as number, teamId),
+    enabled: !!accountId,
   });
 }
 
-export function useTeraStats(player: string) {
+export function useTeraStats(accountId?: number, teamId?: number) {
   return useQuery({
-    queryKey: ['player', player, 'tera'],
-    queryFn: () => api.getTeraStats(player),
-    enabled: !!player,
+    queryKey: ['account', accountId, 'tera', teamId],
+    queryFn: () => api.getTeraStats(accountId as number, teamId),
+    enabled: !!accountId,
   });
 }
 
-export function useGameHistory(player: string) {
+export function useGameHistory(accountId?: number, teamId?: number) {
   return useQuery({
-    queryKey: ['player', player, 'history'],
-    queryFn: () => api.getHistory(player),
-    enabled: !!player,
+    queryKey: ['account', accountId, 'history', teamId],
+    queryFn: () => api.getHistory(accountId as number, teamId),
+    enabled: !!accountId,
   });
 }

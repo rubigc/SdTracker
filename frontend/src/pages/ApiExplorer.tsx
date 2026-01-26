@@ -14,44 +14,46 @@ interface ApiEndpoint {
 const endpoints: ApiEndpoint[] = [
   {
     method: 'GET',
-    path: '/api/winrates/:name',
-    description: 'Get winrate statistics for a player',
-    params: { name: 'Player name' },
+    path: '/api/accounts/:id/winrates',
+    description: 'Get winrate statistics for an account (optional team_id query)',
+    params: { id: 'Account ID' },
   },
   {
     method: 'GET',
-    path: '/api/leads/:name',
-    description: 'Get lead Pokemon statistics for a player',
-    params: { name: 'Player name' },
+    path: '/api/accounts/:id/leads',
+    description: 'Get lead Pokemon statistics for an account (optional team_id query)',
+    params: { id: 'Account ID' },
   },
   {
     method: 'GET',
-    path: '/api/tera/:name',
-    description: 'Get Terastallization type statistics for a player',
-    params: { name: 'Player name' },
+    path: '/api/accounts/:id/tera',
+    description: 'Get Terastallization statistics for an account (optional team_id query)',
+    params: { id: 'Account ID' },
   },
   {
     method: 'GET',
-    path: '/api/history/:name',
-    description: 'Get game history for a player',
-    params: { name: 'Player name' },
+    path: '/api/accounts/:id/history',
+    description: 'Get game history for an account (optional team_id query)',
+    params: { id: 'Account ID' },
   },
 ];
 
 export function ApiExplorer() {
   const [selectedEndpoint, setSelectedEndpoint] = useState<ApiEndpoint | null>(null);
-  const [playerName, setPlayerName] = useState('');
+  const [accountId, setAccountId] = useState('');
+  const [teamId, setTeamId] = useState('');
   const [response, setResponse] = useState<string>('');
   const [loading, setLoading] = useState(false);
   
   const handleTest = async () => {
-    if (!selectedEndpoint || !playerName.trim()) return;
+    if (!selectedEndpoint || !accountId.trim()) return;
     
     setLoading(true);
     setResponse('');
     
     try {
-      const url = `http://localhost:3001${selectedEndpoint.path.replace(':name', playerName.trim())}`;
+      const baseUrl = `http://localhost:3001${selectedEndpoint.path.replace(':id', accountId.trim())}`;
+      const url = teamId.trim() ? `${baseUrl}?team_id=${encodeURIComponent(teamId.trim())}` : baseUrl;
       const res = await fetch(url);
       const data = await res.json();
       setResponse(JSON.stringify(data, null, 2));
@@ -63,8 +65,9 @@ export function ApiExplorer() {
   };
   
   const handleOpenInBrowser = () => {
-    if (!selectedEndpoint || !playerName.trim()) return;
-    const url = `http://localhost:3001${selectedEndpoint.path.replace(':name', playerName.trim())}`;
+    if (!selectedEndpoint || !accountId.trim()) return;
+    const baseUrl = `http://localhost:3001${selectedEndpoint.path.replace(':id', accountId.trim())}`;
+    const url = teamId.trim() ? `${baseUrl}?team_id=${encodeURIComponent(teamId.trim())}` : baseUrl;
     window.open(url, '_blank');
   };
   
@@ -135,10 +138,16 @@ export function ApiExplorer() {
                           key={key}
                           label={`${key} (${description})`}
                           placeholder={`Enter ${key}`}
-                          value={playerName}
-                          onChange={(e) => setPlayerName(e.target.value)}
+                          value={accountId}
+                          onChange={(e) => setAccountId(e.target.value)}
                         />
                       ))}
+                      <Input
+                        label="team_id (optional)"
+                        placeholder="Enter team id"
+                        value={teamId}
+                        onChange={(e) => setTeamId(e.target.value)}
+                      />
                     </div>
                   )}
                 </div>
@@ -146,7 +155,7 @@ export function ApiExplorer() {
                 <div className="flex gap-2">
                   <Button
                     onClick={handleTest}
-                    disabled={loading || !playerName.trim()}
+                    disabled={loading || !accountId.trim()}
                     className="flex-1"
                   >
                     <Play className="w-4 h-4 mr-2" />
@@ -154,7 +163,7 @@ export function ApiExplorer() {
                   </Button>
                   <Button
                     onClick={handleOpenInBrowser}
-                    disabled={!playerName.trim()}
+                    disabled={!accountId.trim()}
                     variant="secondary"
                   >
                     <ExternalLink className="w-4 h-4 mr-2" />

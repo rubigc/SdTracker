@@ -11,10 +11,12 @@ pub async fn health() -> impl Responder {
 }
 
 pub async fn get_winrates(
-    path: web::Path<String>,
+    path: web::Path<i64>,
+    query: web::Query<std::collections::HashMap<String, String>>,
     db: web::Data<Arc<Mutex<Database>>>,
 ) -> impl Responder {
-    let player_name = path.into_inner();
+    let account_id = path.into_inner();
+    let team_id = query.get("team_id").and_then(|s| s.parse::<i64>().ok());
     
     let db_guard = match db.lock() {
         Ok(guard) => guard,
@@ -27,7 +29,23 @@ pub async fn get_winrates(
         }
     };
     
-    match get_winrate_stats(&db_guard, &player_name) {
+    let account = match db_guard.get_account_by_id(account_id) {
+        Ok(Some(account)) => account,
+        Ok(None) => {
+            return HttpResponse::NotFound().json(serde_json::json!({
+                "error": "Account not found"
+            }));
+        }
+        Err(e) => {
+            eprintln!("Error fetching account: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to fetch account",
+                "details": e.to_string()
+            }));
+        }
+    };
+
+    match get_winrate_stats(&db_guard, &account.name, account.id, team_id) {
         Ok(stats) => HttpResponse::Ok().json(stats),
         Err(e) => {
             eprintln!("Error getting winrates: {}", e);
@@ -40,10 +58,12 @@ pub async fn get_winrates(
 }
 
 pub async fn get_leads(
-    path: web::Path<String>,
+    path: web::Path<i64>,
+    query: web::Query<std::collections::HashMap<String, String>>,
     db: web::Data<Arc<Mutex<Database>>>,
 ) -> impl Responder {
-    let player_name = path.into_inner();
+    let account_id = path.into_inner();
+    let team_id = query.get("team_id").and_then(|s| s.parse::<i64>().ok());
     
     let db_guard = match db.lock() {
         Ok(guard) => guard,
@@ -56,7 +76,23 @@ pub async fn get_leads(
         }
     };
     
-    match get_lead_stats(&db_guard, &player_name) {
+    let account = match db_guard.get_account_by_id(account_id) {
+        Ok(Some(account)) => account,
+        Ok(None) => {
+            return HttpResponse::NotFound().json(serde_json::json!({
+                "error": "Account not found"
+            }));
+        }
+        Err(e) => {
+            eprintln!("Error fetching account: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to fetch account",
+                "details": e.to_string()
+            }));
+        }
+    };
+
+    match get_lead_stats(&db_guard, &account.name, account.id, team_id) {
         Ok(stats) => HttpResponse::Ok().json(stats),
         Err(e) => {
             eprintln!("Error getting leads: {}", e);
@@ -69,10 +105,12 @@ pub async fn get_leads(
 }
 
 pub async fn get_tera(
-    path: web::Path<String>,
+    path: web::Path<i64>,
+    query: web::Query<std::collections::HashMap<String, String>>,
     db: web::Data<Arc<Mutex<Database>>>,
 ) -> impl Responder {
-    let player_name = path.into_inner();
+    let account_id = path.into_inner();
+    let team_id = query.get("team_id").and_then(|s| s.parse::<i64>().ok());
     
     let db_guard = match db.lock() {
         Ok(guard) => guard,
@@ -85,7 +123,23 @@ pub async fn get_tera(
         }
     };
     
-    match get_tera_stats(&db_guard, &player_name) {
+    let account = match db_guard.get_account_by_id(account_id) {
+        Ok(Some(account)) => account,
+        Ok(None) => {
+            return HttpResponse::NotFound().json(serde_json::json!({
+                "error": "Account not found"
+            }));
+        }
+        Err(e) => {
+            eprintln!("Error fetching account: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to fetch account",
+                "details": e.to_string()
+            }));
+        }
+    };
+
+    match get_tera_stats(&db_guard, &account.name, account.id, team_id) {
         Ok(stats) => HttpResponse::Ok().json(stats),
         Err(e) => {
             eprintln!("Error getting tera: {}", e);
@@ -98,10 +152,12 @@ pub async fn get_tera(
 }
 
 pub async fn get_history(
-    path: web::Path<String>,
+    path: web::Path<i64>,
+    query: web::Query<std::collections::HashMap<String, String>>,
     db: web::Data<Arc<Mutex<Database>>>,
 ) -> impl Responder {
-    let player_name = path.into_inner();
+    let account_id = path.into_inner();
+    let team_id = query.get("team_id").and_then(|s| s.parse::<i64>().ok());
     
     let db_guard = match db.lock() {
         Ok(guard) => guard,
@@ -114,7 +170,23 @@ pub async fn get_history(
         }
     };
     
-    match get_history_games(&db_guard, &player_name) {
+    let account = match db_guard.get_account_by_id(account_id) {
+        Ok(Some(account)) => account,
+        Ok(None) => {
+            return HttpResponse::NotFound().json(serde_json::json!({
+                "error": "Account not found"
+            }));
+        }
+        Err(e) => {
+            eprintln!("Error fetching account: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to fetch account",
+                "details": e.to_string()
+            }));
+        }
+    };
+
+    match get_history_games(&db_guard, &account.name, account.id, team_id) {
         Ok(games) => HttpResponse::Ok().json(games),
         Err(e) => {
             eprintln!("Error getting history: {}", e);
@@ -126,10 +198,15 @@ pub async fn get_history(
     }
 }
 
-fn get_winrate_stats(db: &Database, player_name: &str) -> Result<WinrateStats, Box<dyn std::error::Error>> {
-    let overall = db.get_overall_winrate(player_name)?;
-    let bo3 = db.get_bo3_winrate(player_name)?;
-    let bo3_games = db.get_bo3_game_winrates(player_name)?;
+fn get_winrate_stats(
+    db: &Database,
+    player_name: &str,
+    account_id: i64,
+    team_id: Option<i64>,
+) -> Result<WinrateStats, Box<dyn std::error::Error>> {
+    let overall = db.get_overall_winrate(player_name, account_id, team_id)?;
+    let bo3 = db.get_bo3_winrate(player_name, account_id, team_id)?;
+    let bo3_games = db.get_bo3_game_winrates(player_name, account_id, team_id)?;
     
     let overall_win_rate = if overall.total > 0 {
         (overall.wins as f64 / overall.total as f64) * 100.0
@@ -167,8 +244,13 @@ fn get_winrate_stats(db: &Database, player_name: &str) -> Result<WinrateStats, B
     })
 }
 
-fn get_lead_stats(db: &Database, player_name: &str) -> Result<Vec<LeadStat>, Box<dyn std::error::Error>> {
-    let results = db.get_lead_stats(player_name)?;
+fn get_lead_stats(
+    db: &Database,
+    player_name: &str,
+    account_id: i64,
+    team_id: Option<i64>,
+) -> Result<Vec<LeadStat>, Box<dyn std::error::Error>> {
+    let results = db.get_lead_stats(player_name, account_id, team_id)?;
     
     let mut stats: Vec<LeadStat> = results
         .into_iter()
@@ -193,8 +275,13 @@ fn get_lead_stats(db: &Database, player_name: &str) -> Result<Vec<LeadStat>, Box
     Ok(stats)
 }
 
-fn get_tera_stats(db: &Database, player_name: &str) -> Result<Vec<TeraStat>, Box<dyn std::error::Error>> {
-    let results = db.get_tera_stats(player_name)?;
+fn get_tera_stats(
+    db: &Database,
+    player_name: &str,
+    account_id: i64,
+    team_id: Option<i64>,
+) -> Result<Vec<TeraStat>, Box<dyn std::error::Error>> {
+    let results = db.get_tera_stats(player_name, account_id, team_id)?;
     
     let mut stats: Vec<TeraStat> = results
         .into_iter()
@@ -222,8 +309,13 @@ fn get_tera_stats(db: &Database, player_name: &str) -> Result<Vec<TeraStat>, Box
     Ok(stats)
 }
 
-fn get_history_games(db: &Database, player_name: &str) -> Result<Vec<HistoryGame>, Box<dyn std::error::Error>> {
-    let results = db.get_history(player_name)?;
+fn get_history_games(
+    db: &Database,
+    player_name: &str,
+    account_id: i64,
+    team_id: Option<i64>,
+) -> Result<Vec<HistoryGame>, Box<dyn std::error::Error>> {
+    let results = db.get_history(player_name, account_id, team_id)?;
     
     let games: Vec<HistoryGame> = results
         .into_iter()

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { backendService } from '../services/backend';
 import { parserService } from '../services/parser';
-import { getAutoStartEnabled, getStoredUsername } from '../utils/autostart';
+import { getAutoStartEnabled } from '../utils/autostart';
 
 export function useAutoStartServices() {
   const hasStartedRef = useRef(false);
@@ -26,13 +26,9 @@ export function useAutoStartServices() {
 
       if (getAutoStartEnabled()) {
         try {
-          const savedUsername = getStoredUsername();
-          if (!savedUsername) {
-            return;
-          }
           const status = await parserService.getParserStatus();
           if (!status?.running) {
-            await parserService.startParser(savedUsername);
+            await parserService.startParser();
           }
         } catch {
           // Ignore auto-start failures; user can start manually.

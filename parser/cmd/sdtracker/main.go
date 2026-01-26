@@ -21,8 +21,6 @@ type PasteData struct {
 	HTML string `json:"html"`
 }
 
-var username string
-
 // parseDownload reads the replay file and sends it to the database
 func parseDownload(path string) error {
 	data, err := os.ReadFile(path)
@@ -31,12 +29,12 @@ func parseDownload(path string) error {
 	}
 
 	replay := string(data)
-	return databasepopulate.AddReplay(replay, username)
+	return databasepopulate.AddReplay(replay)
 }
 
 // parseHTML parses HTML content directly and sends it to the database
 func parseHTML(htmlContent string) error {
-	return databasepopulate.AddReplay(htmlContent, username)
+	return databasepopulate.AddReplay(htmlContent)
 }
 
 // handlePost handles POST requests with a replay URL
@@ -167,17 +165,12 @@ func enableCORS(next http.Handler) http.Handler {
 }
 
 func main() {
-	username = os.Getenv("SHOWDOWN_USERNAME")
-	if username == "" {
-		log.Fatal("SHOWDOWN_USERNAME environment variable not set")
-	}
-
 	mux := http.NewServeMux()
 	mux.HandleFunc("/receive-logs", handlePost)
 	mux.HandleFunc("/paste-replay", handlePaste)
 	mux.HandleFunc("/upload-replay", handleUpload)
 
-	log.Printf("Server running on http://localhost:8098 for user %s", username)
+	log.Printf("Server running on http://localhost:8098")
 	log.Println("Available endpoints:")
 	log.Println("  POST /receive-logs - Download replay from URL")
 	log.Println("  POST /paste-replay - Paste HTML content directly")

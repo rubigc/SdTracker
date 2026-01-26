@@ -6,7 +6,6 @@ use std::path::PathBuf;
 pub struct ParserManager {
     process: Arc<Mutex<Option<Child>>>,
     start_time: Arc<Mutex<Option<Instant>>>,
-    username: Arc<Mutex<Option<String>>>,
 }
 
 impl ParserManager {
@@ -14,11 +13,10 @@ impl ParserManager {
         Self {
             process: Arc::new(Mutex::new(None)),
             start_time: Arc::new(Mutex::new(None)),
-            username: Arc::new(Mutex::new(None)),
         }
     }
     
-    pub fn start(&self, username: String) -> Result<(), String> {
+    pub fn start(&self) -> Result<(), String> {
         let mut process_guard = self.process.lock().unwrap();
         
         if process_guard.is_some() {
@@ -37,13 +35,11 @@ impl ParserManager {
         
         let child = Command::new(&parser_path)
             .current_dir(&resources_dir)
-            .env("SHOWDOWN_USERNAME", &username)
             .spawn()
             .map_err(|e| format!("Failed to start parser: {}", e))?;
         
         *process_guard = Some(child);
         *self.start_time.lock().unwrap() = Some(Instant::now());
-        *self.username.lock().unwrap() = Some(username);
         
         Ok(())
     }
@@ -58,7 +54,6 @@ impl ParserManager {
         }
         
         *self.start_time.lock().unwrap() = None;
-        *self.username.lock().unwrap() = None;
         
         Ok(())
     }
@@ -69,14 +64,13 @@ impl ParserManager {
     
     pub fn get_status(&self) -> ParserStatus {
         let running = self.is_running();
-        let username = self.username.lock().unwrap().clone().unwrap_or_default();
         let uptime = self.start_time.lock().unwrap()
             .map(|t| t.elapsed().as_secs())
             .unwrap_or(0);
         
         ParserStatus {
             running,
-            username,
+            username: String::new(),
             port: 8098,
             uptime,
             logs_received: 0, // Would need to track this
