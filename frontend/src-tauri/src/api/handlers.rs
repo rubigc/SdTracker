@@ -377,6 +377,40 @@ pub async fn get_accounts(
     }
 }
 
+pub async fn get_account_by_name(
+    path: web::Path<String>,
+    db: web::Data<Arc<Mutex<Database>>>,
+) -> impl Responder {
+    let name = path.into_inner();
+    
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+    
+    match db_guard.get_account_by_name(&name) {
+        Ok(Some(account)) => HttpResponse::Ok().json(account),
+        Ok(None) => {
+            HttpResponse::NotFound().json(serde_json::json!({
+                "error": "Account not found"
+            }))
+        }
+        Err(e) => {
+            eprintln!("Error getting account by name: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to fetch account",
+                "details": e.to_string()
+            }))
+        }
+    }
+}
+
 pub async fn create_account(
     req: web::Json<CreateAccountRequest>,
     db: web::Data<Arc<Mutex<Database>>>,
@@ -589,6 +623,40 @@ pub async fn delete_team(
     }
 }
 
+pub async fn get_team_by_id(
+    path: web::Path<i64>,
+    db: web::Data<Arc<Mutex<Database>>>,
+) -> impl Responder {
+    let team_id = path.into_inner();
+    
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+    
+    match db_guard.get_team_by_id(team_id) {
+        Ok(Some(team)) => HttpResponse::Ok().json(team),
+        Ok(None) => {
+            HttpResponse::NotFound().json(serde_json::json!({
+                "error": "Team not found"
+            }))
+        }
+        Err(e) => {
+            eprintln!("Error getting team by id: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to fetch team",
+                "details": e.to_string()
+            }))
+        }
+    }
+}
+
 // Move usage handlers
 
 pub async fn get_move_stats(
@@ -616,6 +684,188 @@ pub async fn get_move_stats(
             eprintln!("Error getting move stats: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
                 "error": "Failed to fetch move stats",
+                "details": e.to_string()
+            }))
+        }
+    }
+}
+
+pub async fn record_team_usage(
+    req: web::Json<RecordTeamUsageRequest>,
+    db: web::Data<Arc<Mutex<Database>>>,
+) -> impl Responder {
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+    
+    match db_guard.record_team_usage(req.game_id, req.team_id, req.account_id) {
+        Ok(_) => HttpResponse::Ok().json(serde_json::json!({
+            "message": "Team usage recorded successfully"
+        })),
+        Err(e) => {
+            eprintln!("Error recording team usage: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to record team usage",
+                "details": e.to_string()
+            }))
+        }
+    }
+}
+
+pub async fn update_team_stats(
+    req: web::Json<UpdateTeamStatsRequest>,
+    db: web::Data<Arc<Mutex<Database>>>,
+) -> impl Responder {
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+    
+    match db_guard.update_team_stats(req.team_id, req.won) {
+        Ok(_) => HttpResponse::Ok().json(serde_json::json!({
+            "message": "Team stats updated successfully"
+        })),
+        Err(e) => {
+            eprintln!("Error updating team stats: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to update team stats",
+                "details": e.to_string()
+            }))
+        }
+    }
+}
+
+pub async fn record_move_usage(
+    req: web::Json<RecordMoveUsageRequest>,
+    db: web::Data<Arc<Mutex<Database>>>,
+) -> impl Responder {
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+    
+    match db_guard.record_move_usage(req.game_id, req.account_id, &req.pokemon_name, &req.move_name) {
+        Ok(_) => HttpResponse::Ok().json(serde_json::json!({
+            "message": "Move usage recorded successfully"
+        })),
+        Err(e) => {
+            eprintln!("Error recording move usage: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to record move usage",
+                "details": e.to_string()
+            }))
+        }
+    }
+}
+
+pub async fn get_team_usage_by_game(
+    path: web::Path<i64>,
+    db: web::Data<Arc<Mutex<Database>>>,
+) -> impl Responder {
+    let game_id = path.into_inner();
+    
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+    
+    match db_guard.get_team_usage_by_game(game_id) {
+        Ok(Some((team_id, account_id))) => HttpResponse::Ok().json(serde_json::json!({
+            "team_id": team_id,
+            "account_id": account_id
+        })),
+        Ok(None) => {
+            HttpResponse::NotFound().json(serde_json::json!({
+                "error": "Team usage not found for this game"
+            }))
+        }
+        Err(e) => {
+            eprintln!("Error getting team usage by game: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to fetch team usage",
+                "details": e.to_string()
+            }))
+        }
+    }
+}
+
+pub async fn get_move_usage_by_game(
+    path: web::Path<i64>,
+    db: web::Data<Arc<Mutex<Database>>>,
+) -> impl Responder {
+    let game_id = path.into_inner();
+    
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+    
+    match db_guard.get_move_usage_by_game(game_id) {
+        Ok(usages) => HttpResponse::Ok().json(usages),
+        Err(e) => {
+            eprintln!("Error getting move usage by game: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to fetch move usage",
+                "details": e.to_string()
+            }))
+        }
+    }
+}
+
+pub async fn get_move_usage_by_account(
+    path: web::Path<i64>,
+    db: web::Data<Arc<Mutex<Database>>>,
+) -> impl Responder {
+    let account_id = path.into_inner();
+    
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+    
+    match db_guard.get_move_usage_by_account(account_id) {
+        Ok(usages) => HttpResponse::Ok().json(usages),
+        Err(e) => {
+            eprintln!("Error getting move usage by account: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to fetch move usage",
                 "details": e.to_string()
             }))
         }

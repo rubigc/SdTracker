@@ -679,6 +679,49 @@ impl Database {
 
         Ok(stats)
     }
+
+    pub fn get_move_usage_by_game(&self, game_id: i64) -> Result<Vec<MoveUsage>> {
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT id, game_id, account_id, pokemon_name, move_name, usage_count
+             FROM move_usage
+             WHERE game_id = ?1"
+        )?;
+
+        let usages = stmt.query_map(params![game_id], |row| {
+            Ok(MoveUsage {
+                id: row.get(0)?,
+                game_id: row.get(1)?,
+                account_id: row.get(2)?,
+                pokemon_name: row.get(3)?,
+                move_name: row.get(4)?,
+                usage_count: row.get(5)?,
+            })
+        })?.collect::<Result<Vec<_>>>()?;
+
+        Ok(usages)
+    }
+
+    pub fn get_move_usage_by_account(&self, account_id: i64) -> Result<Vec<MoveUsage>> {
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT id, game_id, account_id, pokemon_name, move_name, usage_count
+             FROM move_usage
+             WHERE account_id = ?1
+             ORDER BY game_id DESC"
+        )?;
+
+        let usages = stmt.query_map(params![account_id], |row| {
+            Ok(MoveUsage {
+                id: row.get(0)?,
+                game_id: row.get(1)?,
+                account_id: row.get(2)?,
+                pokemon_name: row.get(3)?,
+                move_name: row.get(4)?,
+                usage_count: row.get(5)?,
+            })
+        })?.collect::<Result<Vec<_>>>()?;
+
+        Ok(usages)
+    }
 }
 
 fn initialize_schema(conn: &Connection) -> Result<()> {

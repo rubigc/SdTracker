@@ -102,6 +102,27 @@ pub struct UpdateTeamRequest {
     pub team_data: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RecordTeamUsageRequest {
+    pub game_id: i64,
+    pub team_id: i64,
+    pub account_id: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateTeamStatsRequest {
+    pub team_id: i64,
+    pub won: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RecordMoveUsageRequest {
+    pub game_id: i64,
+    pub account_id: i64,
+    pub pokemon_name: String,
+    pub move_name: String,
+}
+
 // Move usage models
 
 #[derive(Debug, Serialize, Deserialize)]

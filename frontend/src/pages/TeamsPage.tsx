@@ -1,29 +1,34 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
+import { useBackend } from '../hooks/useBackend';
 import type { Account } from '../types';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
-import { Users, Plus, Trash2, Edit, Trophy, Calendar } from 'lucide-react';
+import { StatusIndicator } from '../components/common/StatusIndicator';
+import { Users, Plus, Trash2, Edit, Trophy, Calendar, AlertCircle, Server } from 'lucide-react';
 
 export function TeamsPage() {
   const queryClient = useQueryClient();
+  const { apiRunning, startApiServer } = useBackend();
   const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [showCreateTeam, setShowCreateTeam] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [newAccountName, setNewAccountName] = useState('');
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamData, setNewTeamData] = useState('');
+  const [accountCreateError, setAccountCreateError] = useState<string | null>(null);
+  const [teamCreateError, setTeamCreateError] = useState<string | null>(null);
 
   // Fetch accounts
-  const { data: accounts, isLoading: accountsLoading } = useQuery({
+  const { data: accounts, isLoading: accountsLoading, isError: accountsHasError, error: accountsError } = useQuery({
     queryKey: ['accounts'],
     queryFn: api.getAccounts,
   });
 
   // Fetch teams
-  const { data: teams, isLoading: teamsLoading } = useQuery({
+  const { data: teams, isLoading: teamsLoading, isError: teamsHasError, error: teamsError } = useQuery({
     queryKey: ['teams'],
     queryFn: api.getTeams,
   });
@@ -35,6 +40,11 @@ export function TeamsPage() {
       queryClient.invalidateQueries({ queryKey: ['accounts'] });
       setShowCreateAccount(false);
       setNewAccountName('');
+      setAccountCreateError(null);
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to create account.';
+      setAccountCreateError(message);
     },
   });
 
@@ -49,6 +59,11 @@ export function TeamsPage() {
       setShowCreateTeam(false);
       setNewTeamName('');
       setNewTeamData('');
+      setTeamCreateError(null);
+    },
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to create team.';
+      setTeamCreateError(message);
     },
   });
 
@@ -65,12 +80,18 @@ export function TeamsPage() {
 
   const handleCreateAccount = () => {
     if (newAccountName.trim()) {
+      setAccountCreateError(null);
       createAccountMutation.mutate({ name: newAccountName.trim() });
     }
   };
 
+  const handleStartApiServer = () => {
+    startApiServer();
+  };
+
   const handleCreateTeam = () => {
     if (newTeamName.trim() && newTeamData.trim()) {
+      setTeamCreateError(null);
       createTeamMutation.mutate({
         name: newTeamName.trim(),
         account_id: selectedAccount?.id,
@@ -93,11 +114,33 @@ export function TeamsPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Teams & Accounts</h1>
-        <Button onClick={() => setShowCreateAccount(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Account
-        </Button>
+        <div className="flex items-center gap-3">
+          <StatusIndicator status={apiRunning ? 'running' : 'stopped'} />
+          <Button onClick={() => setShowCreateAccount(true)} disabled={!apiRunning}>
+            <Plus className="w-4 h-4 mr-2" />
+            Add Account
+          </Button>
+        </div>
       </div>
+
+      {/* API Server Status Warning */}
+      {!apiRunning && (
+        <Card className="bg-yellow-900/30 border-yellow-600">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-yellow-400 mb-1">API Server Not Running</h3>
+              <p className="text-sm text-gray-300 mb-3">
+                The API server is required to create accounts and manage teams. Please start it to continue.
+              </p>
+              <Button onClick={handleStartApiServer} size="sm" variant="success">
+                <Server className="w-4 h-4 mr-2" />
+                Start API Server
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Accounts Section */}
       <Card>
@@ -108,6 +151,10 @@ export function TeamsPage() {
         
         {accountsLoading ? (
           <div className="text-gray-400">Loading accounts...</div>
+        ) : accountsHasError ? (
+          <div className="text-red-400">
+            Failed to load accounts: {accountsError instanceof Error ? accountsError.message : 'Unknown error'}
+          </div>
         ) : accounts && accounts.length > 0 ? (
           <div className="space-y-2">
             {accounts.map((account) => (
@@ -155,6 +202,10 @@ export function TeamsPage() {
 
         {teamsLoading ? (
           <div className="text-gray-400">Loading teams...</div>
+        ) : teamsHasError ? (
+          <div className="text-red-400">
+            Failed to load teams: {teamsError instanceof Error ? teamsError.message : 'Unknown error'}
+          </div>
         ) : filteredTeams && filteredTeams.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredTeams.map((team) => (
@@ -221,6 +272,9 @@ export function TeamsPage() {
               onChange={(e) => setNewAccountName(e.target.value)}
               className="mb-4"
             />
+            {accountCreateError && (
+              <div className="text-sm text-red-400 mb-3">{accountCreateError}</div>
+            )}
             <div className="flex gap-2">
               <Button onClick={handleCreateAccount} disabled={createAccountMutation.isPending}>
                 {createAccountMutation.isPending ? 'Creating...' : 'Create'}
@@ -257,6 +311,9 @@ export function TeamsPage() {
               onChange={(e) => setNewTeamData(e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white mb-4 min-h-50 resize-y"
             />
+            {teamCreateError && (
+              <div className="text-sm text-red-400 mb-3">{teamCreateError}</div>
+            )}
             <div className="flex gap-2">
               <Button onClick={handleCreateTeam} disabled={createTeamMutation.isPending}>
                 {createTeamMutation.isPending ? 'Creating...' : 'Create'}

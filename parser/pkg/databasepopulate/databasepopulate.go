@@ -115,9 +115,10 @@ func AddReplay(replay string) error {
 
 	//Game Info setter (avoid duplicates if already imported)
 	var gameId int
+	var stmt *sql.Stmt
 	err = db.QueryRow("SELECT id FROM games WHERE match_uuid = ? AND game_number = ?", matchUUID, gameNumber).Scan(&gameId)
 	if err == sql.ErrNoRows {
-		stmt, err := db.Prepare(`INSERT INTO games(match_id, game_number, match_uuid, winner, replay) VALUES (?, ?, ?, ?, ?)`)
+		stmt, err = db.Prepare(`INSERT INTO games(match_id, game_number, match_uuid, winner, replay) VALUES (?, ?, ?, ?, ?)`)
 		if err != nil {
 			return err
 		}

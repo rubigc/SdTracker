@@ -12,132 +12,102 @@ import type {
   MoveStats
 } from '../types';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = 'http://127.0.0.1:3001/api';
+
+async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
+  try {
+    const response = await fetch(input, init);
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  } catch (error) {
+    if (error instanceof Error && error.message.toLowerCase().includes('failed to fetch')) {
+      throw new Error('Failed to reach API server. Make sure it is running (Settings → Backend Control).');
+    }
+    throw error;
+  }
+}
 
 export const api = {
   getWinrates: async (accountId: number, teamId?: number): Promise<WinrateStats> => {
     const url = teamId
       ? `${API_BASE}/accounts/${accountId}/winrates?team_id=${teamId}`
       : `${API_BASE}/accounts/${accountId}/winrates`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch winrates: ${response.statusText}`);
-    }
-    return response.json();
+    return requestJson<WinrateStats>(url);
   },
   
   getLeadStats: async (accountId: number, teamId?: number): Promise<LeadStat[]> => {
     const url = teamId
       ? `${API_BASE}/accounts/${accountId}/leads?team_id=${teamId}`
       : `${API_BASE}/accounts/${accountId}/leads`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch lead stats: ${response.statusText}`);
-    }
-    return response.json();
+    return requestJson<LeadStat[]>(url);
   },
   
   getTeraStats: async (accountId: number, teamId?: number): Promise<TeraStat[]> => {
     const url = teamId
       ? `${API_BASE}/accounts/${accountId}/tera?team_id=${teamId}`
       : `${API_BASE}/accounts/${accountId}/tera`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch tera stats: ${response.statusText}`);
-    }
-    return response.json();
+    return requestJson<TeraStat[]>(url);
   },
   
   getHistory: async (accountId: number, teamId?: number): Promise<HistoryGame[]> => {
     const url = teamId
       ? `${API_BASE}/accounts/${accountId}/history?team_id=${teamId}`
       : `${API_BASE}/accounts/${accountId}/history`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch history: ${response.statusText}`);
-    }
-    return response.json();
+    return requestJson<HistoryGame[]>(url);
   },
 
   // Account endpoints
   getAccounts: async (): Promise<Account[]> => {
-    const response = await fetch(`${API_BASE}/accounts`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch accounts: ${response.statusText}`);
-    }
-    return response.json();
+    return requestJson<Account[]>(`${API_BASE}/accounts`);
   },
 
   createAccount: async (data: CreateAccountRequest): Promise<Account> => {
-    const response = await fetch(`${API_BASE}/accounts`, {
+    return requestJson<Account>(`${API_BASE}/accounts`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      throw new Error(`Failed to create account: ${response.statusText}`);
-    }
-    return response.json();
   },
 
   updateAccount: async (id: number, data: UpdateAccountRequest): Promise<void> => {
-    const response = await fetch(`${API_BASE}/accounts/${id}`, {
+    await requestJson<void>(`${API_BASE}/accounts/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      throw new Error(`Failed to update account: ${response.statusText}`);
-    }
   },
 
   // Team endpoints
   getTeams: async (): Promise<Team[]> => {
-    const response = await fetch(`${API_BASE}/teams`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch teams: ${response.statusText}`);
-    }
-    return response.json();
+    return requestJson<Team[]>(`${API_BASE}/teams`);
   },
 
   getTeamsByAccount: async (accountId: number): Promise<Team[]> => {
-    const response = await fetch(`${API_BASE}/accounts/${accountId}/teams`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch teams: ${response.statusText}`);
-    }
-    return response.json();
+    return requestJson<Team[]>(`${API_BASE}/accounts/${accountId}/teams`);
   },
 
   createTeam: async (data: CreateTeamRequest): Promise<Team> => {
-    const response = await fetch(`${API_BASE}/teams`, {
+    return requestJson<Team>(`${API_BASE}/teams`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      throw new Error(`Failed to create team: ${response.statusText}`);
-    }
-    return response.json();
   },
 
   updateTeam: async (id: number, data: UpdateTeamRequest): Promise<void> => {
-    const response = await fetch(`${API_BASE}/teams/${id}`, {
+    await requestJson<void>(`${API_BASE}/teams/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      throw new Error(`Failed to update team: ${response.statusText}`);
-    }
   },
 
   deleteTeam: async (id: number): Promise<void> => {
-    const response = await fetch(`${API_BASE}/teams/${id}`, {
+    await requestJson<void>(`${API_BASE}/teams/${id}`, {
       method: 'DELETE',
     });
-    if (!response.ok) {
-      throw new Error(`Failed to delete team: ${response.statusText}`);
-    }
   },
 
   // Move usage endpoints
@@ -145,18 +115,10 @@ export const api = {
     const url = teamId 
       ? `${API_BASE}/accounts/${accountId}/moves?team_id=${teamId}`
       : `${API_BASE}/accounts/${accountId}/moves`;
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch move stats: ${response.statusText}`);
-    }
-    return response.json();
+    return requestJson<MoveStats[]>(url);
   },
 
   getMoveStatsByPokemon: async (accountId: number, pokemonName: string): Promise<MoveStats[]> => {
-    const response = await fetch(`${API_BASE}/accounts/${accountId}/moves/${encodeURIComponent(pokemonName)}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch move stats: ${response.statusText}`);
-    }
-    return response.json();
+    return requestJson<MoveStats[]>(`${API_BASE}/accounts/${accountId}/moves/${encodeURIComponent(pokemonName)}`);
   },
 };
