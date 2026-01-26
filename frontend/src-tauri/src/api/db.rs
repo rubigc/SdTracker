@@ -1,6 +1,7 @@
 use rusqlite::{Connection, Result, params};
 use std::path::PathBuf;
 use std::env;
+use std::fs;
 use super::models::*;
 
 pub struct Database {
@@ -30,6 +31,12 @@ impl Database {
         
         eprintln!("Opening database at: {:?}", db_path);
 
+        if let Some(parent) = db_path.parent() {
+            if let Err(_err) = fs::create_dir_all(parent) {
+                return Err(rusqlite::Error::InvalidPath(db_path.clone()));
+            }
+        }
+
         let conn = Connection::open(&db_path)?;
         
         // Enable foreign keys
@@ -37,6 +44,9 @@ impl Database {
         
         // Set busy timeout
         conn.busy_timeout(std::time::Duration::from_secs(5))?;
+
+        // Ensure schema exists
+        initialize_schema(&conn)?;
 
         Ok(Database { conn })
     }
@@ -182,8 +192,8 @@ impl Database {
     }
 
     pub fn get_lead_stats(&self, player_name: &str, account_id: i64, team_id: Option<i64>) -> Result<Vec<StatResult>> {
-        let (query, params) = if let Some(team_id) = team_id {
-            (
+        let raw_data: Vec<(String, i64)> = if let Some(team_id) = team_id {
+            let mut stmt = self.conn.prepare_cached(
                 "SELECT
                   gp.lead_pokemon,
                   CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END AS won
@@ -192,11 +202,15 @@ impl Database {
                  JOIN team_usage tu ON tu.game_id = gp.game_id AND tu.team_id = ?2 AND tu.account_id = ?3
                  WHERE gp.player_name = ?1
                    AND lead_pokemon IS NOT NULL
-                   AND lead_pokemon != ''",
-                params![player_name, team_id, account_id],
-            )
+                   AND lead_pokemon != ''"
+            )?;
+
+            let rows = stmt.query_map(params![player_name, team_id, account_id], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
         } else {
-            (
+            let mut stmt = self.conn.prepare_cached(
                 "SELECT
                   lead_pokemon,
                   CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END AS won
@@ -204,17 +218,14 @@ impl Database {
                  JOIN games g ON gp.game_id = g.id
                  WHERE gp.player_name = ?1
                    AND lead_pokemon IS NOT NULL
-                   AND lead_pokemon != ''",
-                params![player_name],
-            )
+                   AND lead_pokemon != ''"
+            )?;
+
+            let rows = stmt.query_map(params![player_name], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
         };
-
-        let mut stmt = self.conn.prepare_cached(query)?;
-
-        // Collect raw data
-        let raw_data: Vec<(String, i64)> = stmt.query_map(params, |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
-        })?.collect::<Result<Vec<_>>>()?;
 
         // Split semicolon-separated Pokemon and aggregate stats
         let mut pokemon_stats: std::collections::HashMap<String, (i64, i64)> = std::collections::HashMap::new();
@@ -246,46 +257,53 @@ impl Database {
     }
 
     pub fn get_tera_stats(&self, player_name: &str, account_id: i64, team_id: Option<i64>) -> Result<Vec<StatResult>> {
-        let (query, params) = if let Some(team_id) = team_id {
-            (
+        let results = if let Some(team_id) = team_id {
+            let mut stmt = self.conn.prepare_cached(
                 "SELECT tera_used AS tera_type, COUNT(*) AS total,
                   SUM(CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END) AS wins
                  FROM game_players gp
                  JOIN games g ON gp.game_id = g.id
                  JOIN team_usage tu ON tu.game_id = gp.game_id AND tu.team_id = ?2 AND tu.account_id = ?3
                  WHERE gp.player_name = ?1 AND tera_used IS NOT NULL AND tera_used != ''
-                 GROUP BY tera_used",
-                params![player_name, team_id, account_id],
-            )
+                 GROUP BY tera_used"
+            )?;
+
+            let rows = stmt.query_map(params![player_name, team_id, account_id], |row| {
+                Ok(StatResult {
+                    pokemon: None,
+                    tera_type: row.get(0)?,
+                    total: row.get(1)?,
+                    wins: row.get(2)?,
+                })
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
         } else {
-            (
+            let mut stmt = self.conn.prepare_cached(
                 "SELECT tera_used AS tera_type, COUNT(*) AS total,
                   SUM(CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END) AS wins
                  FROM game_players gp
                  JOIN games g ON gp.game_id = g.id
                  WHERE gp.player_name = ?1 AND tera_used IS NOT NULL AND tera_used != ''
-                 GROUP BY tera_used",
-                params![player_name],
-            )
+                 GROUP BY tera_used"
+            )?;
+
+            let rows = stmt.query_map(params![player_name], |row| {
+                Ok(StatResult {
+                    pokemon: None,
+                    tera_type: row.get(0)?,
+                    total: row.get(1)?,
+                    wins: row.get(2)?,
+                })
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
         };
-
-        let mut stmt = self.conn.prepare_cached(query)?;
-
-        let results = stmt.query_map(params, |row| {
-            Ok(StatResult {
-                pokemon: None,
-                tera_type: row.get(0)?,
-                total: row.get(1)?,
-                wins: row.get(2)?,
-            })
-        })?.collect::<Result<Vec<_>>>()?;
 
         Ok(results)
     }
 
     pub fn get_history(&self, player_name: &str, account_id: i64, team_id: Option<i64>) -> Result<Vec<HistoryResult>> {
-        let (query, params) = if let Some(team_id) = team_id {
-            (
+        let results = if let Some(team_id) = team_id {
+            let mut stmt = self.conn.prepare_cached(
                 "SELECT g.id AS game_id, g.game_number, g.winner,
                        gp.team_pokemon AS player_team, gp.lead_pokemon AS player_lead, gp.tera_used AS player_tera,
                        opp.player_name AS opponent, opp.team_pokemon AS opponent_team, opp.lead_pokemon AS opponent_lead, opp.tera_used AS opponent_tera
@@ -295,11 +313,26 @@ impl Database {
                  JOIN game_players gp ON g.id = gp.game_id AND gp.player_name = ?1
                  JOIN game_players opp ON g.id = opp.game_id AND opp.player_name != ?1
                  ORDER BY g.id DESC
-                 LIMIT 100",
-                params![player_name, team_id, account_id],
-            )
+                 LIMIT 100"
+            )?;
+
+            let rows = stmt.query_map(params![player_name, team_id, account_id], |row| {
+                Ok(HistoryResult {
+                    game_id: row.get(0)?,
+                    game_number: row.get(1)?,
+                    winner: row.get(2)?,
+                    player_team: row.get(3)?,
+                    player_lead: row.get(4)?,
+                    player_tera: row.get(5)?,
+                    opponent: row.get(6)?,
+                    opponent_team: row.get(7)?,
+                    opponent_lead: row.get(8)?,
+                    opponent_tera: row.get(9)?,
+                })
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
         } else {
-            (
+            let mut stmt = self.conn.prepare_cached(
                 "SELECT g.id AS game_id, g.game_number, g.winner,
                        gp.team_pokemon AS player_team, gp.lead_pokemon AS player_lead, gp.tera_used AS player_tera,
                        opp.player_name AS opponent, opp.team_pokemon AS opponent_team, opp.lead_pokemon AS opponent_lead, opp.tera_used AS opponent_tera
@@ -308,27 +341,25 @@ impl Database {
                  JOIN game_players gp ON g.id = gp.game_id AND gp.player_name = ?1
                  JOIN game_players opp ON g.id = opp.game_id AND opp.player_name != ?2
                  ORDER BY g.id DESC
-                 LIMIT 100",
-                params![player_name, player_name],
-            )
+                 LIMIT 100"
+            )?;
+
+            let rows = stmt.query_map(params![player_name, player_name], |row| {
+                Ok(HistoryResult {
+                    game_id: row.get(0)?,
+                    game_number: row.get(1)?,
+                    winner: row.get(2)?,
+                    player_team: row.get(3)?,
+                    player_lead: row.get(4)?,
+                    player_tera: row.get(5)?,
+                    opponent: row.get(6)?,
+                    opponent_team: row.get(7)?,
+                    opponent_lead: row.get(8)?,
+                    opponent_tera: row.get(9)?,
+                })
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
         };
-
-        let mut stmt = self.conn.prepare_cached(query)?;
-
-        let results = stmt.query_map(params, |row| {
-            Ok(HistoryResult {
-                game_id: row.get(0)?,
-                game_number: row.get(1)?,
-                winner: row.get(2)?,
-                player_team: row.get(3)?,
-                player_lead: row.get(4)?,
-                player_tera: row.get(5)?,
-                opponent: row.get(6)?,
-                opponent_team: row.get(7)?,
-                opponent_lead: row.get(8)?,
-                opponent_tera: row.get(9)?,
-            })
-        })?.collect::<Result<Vec<_>>>()?;
 
         Ok(results)
     }
@@ -564,7 +595,7 @@ impl Database {
     }
 
     pub fn get_move_stats(&self, account_id: i64, team_id: Option<i64>) -> Result<Vec<MoveStats>> {
-        let query = if let Some(team_id) = team_id {
+        let query = if team_id.is_some() {
             // Get move stats for a specific team
             "SELECT mu.pokemon_name, mu.move_name,
                     SUM(mu.usage_count) as total_usage,
@@ -593,21 +624,29 @@ impl Database {
 
         let mut stmt = self.conn.prepare_cached(query)?;
 
-        let params = if team_id.is_some() {
-            params![account_id, team_id.unwrap()]
+        let stats = if let Some(team_id) = team_id {
+            let rows = stmt.query_map(params![account_id, team_id], |row| {
+                Ok(MoveStats {
+                    pokemon_name: row.get(0)?,
+                    move_name: row.get(1)?,
+                    total_usage: row.get(2)?,
+                    games_played: row.get(3)?,
+                    win_rate: row.get(4)?,
+                })
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
         } else {
-            params![account_id]
+            let rows = stmt.query_map(params![account_id], |row| {
+                Ok(MoveStats {
+                    pokemon_name: row.get(0)?,
+                    move_name: row.get(1)?,
+                    total_usage: row.get(2)?,
+                    games_played: row.get(3)?,
+                    win_rate: row.get(4)?,
+                })
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
         };
-
-        let stats = stmt.query_map(params, |row| {
-            Ok(MoveStats {
-                pokemon_name: row.get(0)?,
-                move_name: row.get(1)?,
-                total_usage: row.get(2)?,
-                games_played: row.get(3)?,
-                win_rate: row.get(4)?,
-            })
-        })?.collect::<Result<Vec<_>>>()?;
 
         Ok(stats)
     }
@@ -638,4 +677,85 @@ impl Database {
 
         Ok(stats)
     }
+}
+
+fn initialize_schema(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        "
+        CREATE TABLE IF NOT EXISTS matches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            match_uuid TEXT UNIQUE,
+            player1 TEXT,
+            player2 TEXT,
+            winner INTEGER,
+            match_date TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS games (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            match_id INTEGER,
+            game_number INTEGER,
+            match_uuid TEXT,
+            winner TEXT,
+            replay TEXT,
+            FOREIGN KEY (match_id) REFERENCES matches(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS game_players (
+            game_id INTEGER NOT NULL,
+            player_name TEXT NOT NULL,
+            team_pokemon TEXT,
+            lead_pokemon TEXT,
+            tera_used TEXT,
+            ots TEXT,
+            PRIMARY KEY (game_id, player_name),
+            FOREIGN KEY (game_id) REFERENCES games(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS accounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            is_active INTEGER DEFAULT 1
+        );
+
+        CREATE TABLE IF NOT EXISTS teams (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            account_id INTEGER,
+            team_data TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            last_used TEXT,
+            games_played INTEGER DEFAULT 0,
+            wins INTEGER DEFAULT 0,
+            FOREIGN KEY (account_id) REFERENCES accounts(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS team_usage (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            game_id INTEGER NOT NULL,
+            team_id INTEGER NOT NULL,
+            account_id INTEGER NOT NULL,
+            FOREIGN KEY (game_id) REFERENCES games(id),
+            FOREIGN KEY (team_id) REFERENCES teams(id),
+            FOREIGN KEY (account_id) REFERENCES accounts(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS move_usage (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            game_id INTEGER NOT NULL,
+            account_id INTEGER NOT NULL,
+            pokemon_name TEXT NOT NULL,
+            move_name TEXT NOT NULL,
+            usage_count INTEGER DEFAULT 1,
+            FOREIGN KEY (game_id) REFERENCES games(id),
+            FOREIGN KEY (account_id) REFERENCES accounts(id)
+        );
+        ",
+    )?;
+
+    // Add columns for older databases without failing startup.
+    let _ = conn.execute("ALTER TABLE game_players ADD COLUMN team_id INTEGER", []);
+
+    Ok(())
 }

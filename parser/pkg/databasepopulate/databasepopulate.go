@@ -142,6 +142,7 @@ func setWinner(db *sql.DB, winnerId int, matchUUID string, replay string) error 
 func AddReplay(replay string) error {
 	//Setup
 	matchUUID := parsereplay.GetMatchUUID(replay)
+	gameNumber := parsereplay.GetGameNumber(replay)
 
 	//Database - use environment variable or default to project root
 	dbPath := os.Getenv("DB_PATH")
@@ -162,7 +163,6 @@ func AddReplay(replay string) error {
 	}
 
 	//Match creation
-	gameNumber := parsereplay.GetGameNumber(replay)
 	if gameNumber == 1 {
 		if err := addMatch(replay, db); err != nil {
 			return err
@@ -181,22 +181,26 @@ func AddReplay(replay string) error {
 		return err
 	}
 
-	//Game Info setter
-	stmt, err := db.Prepare(`INSERT OR IGNORE INTO games(match_id, game_number, match_uuid, winner, replay) VALUES (?, ?, ?, ?, ?)`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	_, err = stmt.Exec(matchId, gameNumber, matchUUID, parsereplay.GetPlayerNameById(replay, parsereplay.GetWhoWonId(replay)), replay)
-	if err != nil {
-		return err
-	}
-
-	//Get game id
+	//Game Info setter (avoid duplicates if already imported)
 	var gameId int
 	err = db.QueryRow("SELECT id FROM games WHERE match_uuid = ? AND game_number = ?", matchUUID, gameNumber).Scan(&gameId)
-	if err != nil {
+	if err == sql.ErrNoRows {
+		stmt, err := db.Prepare(`INSERT INTO games(match_id, game_number, match_uuid, winner, replay) VALUES (?, ?, ?, ?, ?)`)
+		if err != nil {
+			return err
+		}
+		defer stmt.Close()
+
+		_, err = stmt.Exec(matchId, gameNumber, matchUUID, parsereplay.GetPlayerNameById(replay, parsereplay.GetWhoWonId(replay)), replay)
+		if err != nil {
+			return err
+		}
+
+		err = db.QueryRow("SELECT id FROM games WHERE match_uuid = ? AND game_number = ?", matchUUID, gameNumber).Scan(&gameId)
+		if err != nil {
+			return err
+		}
+	} else if err != nil {
 		return err
 	}
 

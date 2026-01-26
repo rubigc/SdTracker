@@ -86,10 +86,10 @@ function extractDominantColors(pixels: Uint8ClampedArray): string[] {
     const brightness = (r + g + b) / 3;
     if (brightness < 30 || brightness > 240) continue;
     
-    // Quantize colors to reduce variations
-    const quantizedR = Math.round(r / 32) * 32;
-    const quantizedG = Math.round(g / 32) * 32;
-    const quantizedB = Math.round(b / 32) * 32;
+    // Quantize colors to reduce variations, clamp to valid channel range
+    const quantizedR = Math.min(255, Math.max(0, Math.round(r / 32) * 32));
+    const quantizedG = Math.min(255, Math.max(0, Math.round(g / 32) * 32));
+    const quantizedB = Math.min(255, Math.max(0, Math.round(b / 32) * 32));
     
     const colorKey = `${quantizedR},${quantizedG},${quantizedB}`;
     colorMap.set(colorKey, (colorMap.get(colorKey) || 0) + 1);
@@ -150,7 +150,7 @@ function generateThemeFromColors(colors: string[]): ExtractedColors {
  * Convert RGB to hex
  */
 function rgbToHex(r: number, g: number, b: number): string {
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  return `#${toHexChannel(r)}${toHexChannel(g)}${toHexChannel(b)}`;
 }
 
 /**
@@ -170,10 +170,10 @@ function hexToRgba(hex: string, alpha: number): string {
  * @returns Adjusted hex color code
  */
 function adjustColor(hex: string, amount: number): string {
-  const r = Math.max(0, Math.min(255, parseInt(hex.slice(1, 3), 16) + amount));
-  const g = Math.max(0, Math.min(255, parseInt(hex.slice(3, 5), 16) + amount));
-  const b = Math.max(0, Math.min(255, parseInt(hex.slice(5, 7), 16) + amount));
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  const r = parseInt(hex.slice(1, 3), 16) + amount;
+  const g = parseInt(hex.slice(3, 5), 16) + amount;
+  const b = parseInt(hex.slice(5, 7), 16) + amount;
+  return rgbToHex(r, g, b);
 }
 
 /**
@@ -183,10 +183,19 @@ function adjustColor(hex: string, amount: number): string {
  * @returns Darkened hex color code
  */
 function darkenColor(hex: string, percent: number): string {
-  const r = Math.max(0, Math.min(255, parseInt(hex.slice(1, 3), 16) * (1 - percent / 100)));
-  const g = Math.max(0, Math.min(255, parseInt(hex.slice(3, 5), 16) * (1 - percent / 100)));
-  const b = Math.max(0, Math.min(255, parseInt(hex.slice(5, 7), 16) * (1 - percent / 100)));
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  const factor = 1 - percent / 100;
+  const r = parseInt(hex.slice(1, 3), 16) * factor;
+  const g = parseInt(hex.slice(3, 5), 16) * factor;
+  const b = parseInt(hex.slice(5, 7), 16) * factor;
+  return rgbToHex(r, g, b);
+}
+
+function toHexChannel(value: number): string {
+  if (!Number.isFinite(value)) {
+    return '00';
+  }
+  const clamped = Math.max(0, Math.min(255, Math.round(value)));
+  return clamped.toString(16).padStart(2, '0');
 }
 
 /**

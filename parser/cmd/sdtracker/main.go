@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -146,6 +148,67 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("File uploaded successfully"))
 }
 
+func importDownloads() {
+	downloadDir, err := filepath.Abs("./downloads")
+	if err != nil {
+		log.Printf("[WARN] Failed to resolve downloads path: %v", err)
+		return
+	}
+
+	entries, err := os.ReadDir(downloadDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Printf("[INFO] No downloads folder found, skipping import")
+			return
+		}
+		log.Printf("[WARN] Failed to read downloads folder: %v", err)
+		return
+	}
+
+	var files []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if strings.HasSuffix(strings.ToLower(name), ".html") {
+			files = append(files, filepath.Join(downloadDir, name))
+		}
+	}
+
+	if len(files) == 0 {
+		log.Printf("[INFO] No replay files found in downloads folder")
+		return
+	}
+
+	sort.Strings(files)
+
+	imported := 0
+	failed := 0
+	for _, path := range files {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			log.Printf("[WARN] Failed to read replay %s: %v", path, err)
+			failed++
+			continue
+		}
+		replay := string(data)
+		if strings.TrimSpace(replay) == "" {
+			log.Printf("[WARN] Replay file is empty, skipping: %s", path)
+			failed++
+			continue
+		}
+		if err := databasepopulate.AddReplay(replay); err != nil {
+			log.Printf("[WARN] Failed to import replay %s: %v", path, err)
+			failed++
+			continue
+		}
+		imported++
+	}
+
+	log.Printf("[INFO] Import complete. Imported: %d, Failed: %d", imported, failed)
+}
+
 // enableCORS is a middleware to allow CORS requests
 func enableCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -165,6 +228,8 @@ func enableCORS(next http.Handler) http.Handler {
 }
 
 func main() {
+	importDownloads()
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/receive-logs", handlePost)
 	mux.HandleFunc("/paste-replay", handlePaste)
