@@ -86,7 +86,7 @@ export function HistoryCard({ data, loading }: HistoryCardProps) {
                     </div>
                     
                     <div className="grid grid-cols-3 gap-2 mb-3">
-                      {[game.player.lead, game.player.tera].filter(Boolean).map((pokemon, idx) => (
+                      {[...game.player.lead.split(';').filter(Boolean), game.player.tera].filter(Boolean).map((pokemon, idx) => (
                         <div key={idx} className="text-center">
                           <img
                             src={getPokemonSpriteUrl(pokemon)}
@@ -105,7 +105,9 @@ export function HistoryCard({ data, loading }: HistoryCardProps) {
                     
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-400">Lead</span>
-                      <span className="text-white">{formatPokemonName(game.player.lead)}</span>
+                      <span className="text-white">
+                        {game.player.lead.split(';').filter(Boolean).map(p => formatPokemonName(p)).join(' / ')}
+                      </span>
                     </div>
                     <div className="flex justify-between text-xs mt-1">
                       <span className="text-gray-400">Tera</span>
@@ -121,7 +123,7 @@ export function HistoryCard({ data, loading }: HistoryCardProps) {
                     </div>
                     
                     <div className="grid grid-cols-3 gap-2 mb-3">
-                      {[game.opponent.lead, game.opponent.tera].filter(Boolean).map((pokemon, idx) => (
+                      {[...game.opponent.lead.split(';').filter(Boolean), game.opponent.tera].filter(Boolean).map((pokemon, idx) => (
                         <div key={idx} className="text-center">
                           <img
                             src={getPokemonSpriteUrl(pokemon)}
@@ -140,7 +142,9 @@ export function HistoryCard({ data, loading }: HistoryCardProps) {
                     
                     <div className="flex justify-between text-xs">
                       <span className="text-gray-400">Lead</span>
-                      <span className="text-white">{formatPokemonName(game.opponent.lead)}</span>
+                      <span className="text-white">
+                        {game.opponent.lead.split(';').filter(Boolean).map(p => formatPokemonName(p)).join(' / ')}
+                      </span>
                     </div>
                     <div className="flex justify-between text-xs mt-1">
                       <span className="text-gray-400">Tera</span>

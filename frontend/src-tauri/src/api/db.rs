@@ -207,4 +207,291 @@ impl Database {
 
         Ok(results)
     }
+
+    // Account methods
+
+    pub fn create_account(&self, name: &str) -> Result<i64> {
+        self.conn.execute(
+            "INSERT INTO accounts (name) VALUES (?1)",
+            params![name],
+        )?;
+        Ok(self.conn.last_insert_rowid())
+    }
+
+    pub fn get_all_accounts(&self) -> Result<Vec<Account>> {
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT id, name, created_at, is_active FROM accounts ORDER BY name"
+        )?;
+
+        let accounts = stmt.query_map([], |row| {
+            Ok(Account {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                created_at: row.get(2)?,
+                is_active: row.get::<_, i32>(3)? == 1,
+            })
+        })?.collect::<Result<Vec<_>>>()?;
+
+        Ok(accounts)
+    }
+
+    pub fn get_account_by_name(&self, name: &str) -> Result<Option<Account>> {
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT id, name, created_at, is_active FROM accounts WHERE name = ?1"
+        )?;
+
+        let mut rows = stmt.query(params![name])?;
+        
+        if let Some(row) = rows.next()? {
+            Ok(Some(Account {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                created_at: row.get(2)?,
+                is_active: row.get::<_, i32>(3)? == 1,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn update_account_active(&self, account_id: i64, is_active: bool) -> Result<()> {
+        self.conn.execute(
+            "UPDATE accounts SET is_active = ?1 WHERE id = ?2",
+            params![if is_active { 1 } else { 0 }, account_id],
+        )?;
+        Ok(())
+    }
+
+    // Team methods
+
+    pub fn create_team(&self, name: &str, account_id: Option<i64>, team_data: &str) -> Result<i64> {
+        self.conn.execute(
+            "INSERT INTO teams (name, account_id, team_data) VALUES (?1, ?2, ?3)",
+            params![name, account_id, team_data],
+        )?;
+        Ok(self.conn.last_insert_rowid())
+    }
+
+    pub fn get_all_teams(&self) -> Result<Vec<Team>> {
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT id, name, account_id, team_data, created_at, last_used, games_played, wins
+             FROM teams ORDER BY created_at DESC"
+        )?;
+
+        let teams = stmt.query_map([], |row| {
+            Ok(Team {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                account_id: row.get(2)?,
+                team_data: row.get(3)?,
+                created_at: row.get(4)?,
+                last_used: row.get(5)?,
+                games_played: row.get(6)?,
+                wins: row.get(7)?,
+            })
+        })?.collect::<Result<Vec<_>>>()?;
+
+        Ok(teams)
+    }
+
+    pub fn get_teams_by_account(&self, account_id: i64) -> Result<Vec<Team>> {
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT id, name, account_id, team_data, created_at, last_used, games_played, wins
+             FROM teams WHERE account_id = ?1 ORDER BY created_at DESC"
+        )?;
+
+        let teams = stmt.query_map(params![account_id], |row| {
+            Ok(Team {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                account_id: row.get(2)?,
+                team_data: row.get(3)?,
+                created_at: row.get(4)?,
+                last_used: row.get(5)?,
+                games_played: row.get(6)?,
+                wins: row.get(7)?,
+            })
+        })?.collect::<Result<Vec<_>>>()?;
+
+        Ok(teams)
+    }
+
+    pub fn get_team_by_id(&self, team_id: i64) -> Result<Option<Team>> {
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT id, name, account_id, team_data, created_at, last_used, games_played, wins
+             FROM teams WHERE id = ?1"
+        )?;
+
+        let mut rows = stmt.query(params![team_id])?;
+        
+        if let Some(row) = rows.next()? {
+            Ok(Some(Team {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                account_id: row.get(2)?,
+                team_data: row.get(3)?,
+                created_at: row.get(4)?,
+                last_used: row.get(5)?,
+                games_played: row.get(6)?,
+                wins: row.get(7)?,
+            }))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn update_team(&self, team_id: i64, name: Option<&str>, team_data: Option<&str>) -> Result<()> {
+        if let Some(name) = name {
+            self.conn.execute(
+                "UPDATE teams SET name = ?1 WHERE id = ?2",
+                params![name, team_id],
+            )?;
+        }
+        if let Some(team_data) = team_data {
+            self.conn.execute(
+                "UPDATE teams SET team_data = ?1 WHERE id = ?2",
+                params![team_data, team_id],
+            )?;
+        }
+        Ok(())
+    }
+
+    pub fn update_team_stats(&self, team_id: i64, won: bool) -> Result<()> {
+        self.conn.execute(
+            "UPDATE teams SET games_played = games_played + 1, wins = wins + ?1, last_used = CURRENT_TIMESTAMP WHERE id = ?2",
+            params![if won { 1 } else { 0 }, team_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn delete_team(&self, team_id: i64) -> Result<()> {
+        self.conn.execute("DELETE FROM teams WHERE id = ?1", params![team_id])?;
+        Ok(())
+    }
+
+    // Team usage methods
+
+    pub fn record_team_usage(&self, game_id: i64, team_id: i64, account_id: i64) -> Result<()> {
+        self.conn.execute(
+            "INSERT INTO team_usage (game_id, team_id, account_id) VALUES (?1, ?2, ?3)",
+            params![game_id, team_id, account_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_team_usage_by_game(&self, game_id: i64) -> Result<Option<(i64, i64)>> {
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT team_id, account_id FROM team_usage WHERE game_id = ?1"
+        )?;
+
+        let mut rows = stmt.query(params![game_id])?;
+        
+        if let Some(row) = rows.next()? {
+            Ok(Some((row.get(0)?, row.get(1)?)))
+        } else {
+            Ok(None)
+        }
+    }
+
+    // Move usage methods
+
+    pub fn record_move_usage(&self, game_id: i64, account_id: i64, pokemon_name: &str, move_name: &str) -> Result<()> {
+        // Check if this move usage already exists for this game
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT id, usage_count FROM move_usage WHERE game_id = ?1 AND account_id = ?2 AND pokemon_name = ?3 AND move_name = ?4"
+        )?;
+
+        let mut rows = stmt.query(params![game_id, account_id, pokemon_name, move_name])?;
+        
+        if let Some(row) = rows.next()? {
+            let id: i64 = row.get(0)?;
+            let count: i64 = row.get(1)?;
+            self.conn.execute(
+                "UPDATE move_usage SET usage_count = ?1 WHERE id = ?2",
+                params![count + 1, id],
+            )?;
+        } else {
+            self.conn.execute(
+                "INSERT INTO move_usage (game_id, account_id, pokemon_name, move_name, usage_count) VALUES (?1, ?2, ?3, ?4, 1)",
+                params![game_id, account_id, pokemon_name, move_name],
+            )?;
+        }
+        Ok(())
+    }
+
+    pub fn get_move_stats(&self, account_id: i64, team_id: Option<i64>) -> Result<Vec<MoveStats>> {
+        let query = if let Some(team_id) = team_id {
+            // Get move stats for a specific team
+            "SELECT mu.pokemon_name, mu.move_name,
+                    SUM(mu.usage_count) as total_usage,
+                    COUNT(DISTINCT mu.game_id) as games_played,
+                    SUM(CASE WHEN g.winner = gp.player_name THEN 1.0 ELSE 0.0 END) / COUNT(*) * 100.0 as win_rate
+             FROM move_usage mu
+             JOIN games g ON mu.game_id = g.id
+             JOIN game_players gp ON g.id = gp.game_id AND gp.player_name = (SELECT name FROM accounts WHERE id = ?1)
+             JOIN team_usage tu ON mu.game_id = tu.game_id AND tu.team_id = ?2
+             WHERE mu.account_id = ?1
+             GROUP BY mu.pokemon_name, mu.move_name
+             ORDER BY total_usage DESC"
+        } else {
+            // Get move stats for all teams of an account
+            "SELECT mu.pokemon_name, mu.move_name,
+                    SUM(mu.usage_count) as total_usage,
+                    COUNT(DISTINCT mu.game_id) as games_played,
+                    SUM(CASE WHEN g.winner = gp.player_name THEN 1.0 ELSE 0.0 END) / COUNT(*) * 100.0 as win_rate
+             FROM move_usage mu
+             JOIN games g ON mu.game_id = g.id
+             JOIN game_players gp ON g.id = gp.game_id AND gp.player_name = (SELECT name FROM accounts WHERE id = ?1)
+             WHERE mu.account_id = ?1
+             GROUP BY mu.pokemon_name, mu.move_name
+             ORDER BY total_usage DESC"
+        };
+
+        let mut stmt = self.conn.prepare_cached(query)?;
+
+        let params = if team_id.is_some() {
+            params![account_id, team_id.unwrap()]
+        } else {
+            params![account_id]
+        };
+
+        let stats = stmt.query_map(params, |row| {
+            Ok(MoveStats {
+                pokemon_name: row.get(0)?,
+                move_name: row.get(1)?,
+                total_usage: row.get(2)?,
+                games_played: row.get(3)?,
+                win_rate: row.get(4)?,
+            })
+        })?.collect::<Result<Vec<_>>>()?;
+
+        Ok(stats)
+    }
+
+    pub fn get_move_stats_by_pokemon(&self, account_id: i64, pokemon_name: &str) -> Result<Vec<MoveStats>> {
+        let mut stmt = self.conn.prepare_cached(
+            "SELECT mu.pokemon_name, mu.move_name,
+                    SUM(mu.usage_count) as total_usage,
+                    COUNT(DISTINCT mu.game_id) as games_played,
+                    SUM(CASE WHEN g.winner = gp.player_name THEN 1.0 ELSE 0.0 END) / COUNT(*) * 100.0 as win_rate
+             FROM move_usage mu
+             JOIN games g ON mu.game_id = g.id
+             JOIN game_players gp ON g.id = gp.game_id AND gp.player_name = (SELECT name FROM accounts WHERE id = ?1)
+             WHERE mu.account_id = ?1 AND mu.pokemon_name = ?2
+             GROUP BY mu.pokemon_name, mu.move_name
+             ORDER BY total_usage DESC"
+        )?;
+
+        let stats = stmt.query_map(params![account_id, pokemon_name], |row| {
+            Ok(MoveStats {
+                pokemon_name: row.get(0)?,
+                move_name: row.get(1)?,
+                total_usage: row.get(2)?,
+                games_played: row.get(3)?,
+                win_rate: row.get(4)?,
+            })
+        })?.collect::<Result<Vec<_>>>()?;
+
+        Ok(stats)
+    }
 }

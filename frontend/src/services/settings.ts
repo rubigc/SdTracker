@@ -6,6 +6,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',
   language: 'en',
   lastUsername: '',
+  favoritePokemon: 'lunala',
 };
 
 const SETTINGS_KEY = 'sdtracker_settings';

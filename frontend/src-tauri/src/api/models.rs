@@ -55,6 +55,74 @@ pub struct Player {
     pub ots: Option<String>,
 }
 
+// Account models
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Account {
+    pub id: i64,
+    pub name: String,
+    pub created_at: String,
+    pub is_active: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateAccountRequest {
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateAccountRequest {
+    pub is_active: bool,
+}
+
+// Team models
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Team {
+    pub id: i64,
+    pub name: String,
+    pub account_id: Option<i64>,
+    pub team_data: String,
+    pub created_at: String,
+    pub last_used: Option<String>,
+    pub games_played: i64,
+    pub wins: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CreateTeamRequest {
+    pub name: String,
+    pub account_id: Option<i64>,
+    pub team_data: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UpdateTeamRequest {
+    pub name: Option<String>,
+    pub team_data: Option<String>,
+}
+
+// Move usage models
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MoveUsage {
+    pub id: i64,
+    pub game_id: i64,
+    pub account_id: i64,
+    pub pokemon_name: String,
+    pub move_name: String,
+    pub usage_count: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct MoveStats {
+    pub pokemon_name: String,
+    pub move_name: String,
+    pub total_usage: i64,
+    pub games_played: i64,
+    pub win_rate: f64,
+}
+
 // Query result models
 
 #[derive(Debug)]

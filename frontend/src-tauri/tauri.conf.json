@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "identifier": "com.sdtracker.app",
   "build": {
-    "beforeDevCommand": "cd ../go-backend && go run cmd/api/main.go",
     "devUrl": "http://localhost:5173",
     "beforeBuildCommand": "npm run build",
     "frontendDist": "../dist"

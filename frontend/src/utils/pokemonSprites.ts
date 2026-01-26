@@ -4,7 +4,7 @@
  */
 
 // Pokemon name to ID mapping (common Pokemon)
-const POKEMON_NAME_TO_ID: Record<string, number> = {
+export const POKEMON_NAME_TO_ID: Record<string, number> = {
   // Gen 1
   'bulbasaur': 1,
   'ivysaur': 2,

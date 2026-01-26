@@ -1,15 +1,12 @@
 #!/bin/bash
 
-echo "Building SdTracker standalone installer..."
+set -e
 
-# Build backend
-echo "Building backend API..."
-cd go-backend
-go build -o ../frontend/src-tauri/resources/backend-api cmd/api/main.go
-cd ..
+echo "Building SdTracker standalone installer..."
 
 # Build parser
 echo "Building parser..."
+mkdir -p frontend/src-tauri/resources
 cd parser
 go build -o ../frontend/src-tauri/resources/parser cmd/sdtracker/main.go
 cd ..

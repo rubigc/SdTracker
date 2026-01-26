@@ -4,4 +4,5 @@ export interface AppSettings {
   theme: 'dark' | 'light';
   language: string;
   lastUsername: string;
+  favoritePokemon: string;
 }

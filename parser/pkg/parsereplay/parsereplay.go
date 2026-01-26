@@ -193,9 +193,11 @@ func GetLeadFromPlayerId(replay string, player int) []string {
 	l1 = searchLineWithPrefix(replay, searchString+"a:")
 	l2 = searchLineWithPrefix(replay, searchString+"b:")
 
-	l1 = strings.Split(l1, "|")[3]
+	// Extract the full species name with form from index 2 instead of nickname from index 3
+	// Switch line format: |switch|p1a: Nickname|Species, L50, F|100/100
+	l1 = strings.Split(l1, "|")[2]
 	l1 = strings.Split(l1, ",")[0]
-	l2 = strings.Split(l2, "|")[3]
+	l2 = strings.Split(l2, "|")[2]
 	l2 = strings.Split(l2, ",")[0]
 
 	lead = append(lead, l1)
@@ -217,7 +219,9 @@ func GetAllPlayedPokemonFromPlayerId(replay string, player int) []string {
 	unparsedList := findAllLinesWithSubstring(replay, searchString)
 
 	for x := range unparsedList {
-		unparsedList[x] = strings.Split(unparsedList[x], "|")[3]
+		// Extract the full species name with form from index 2 instead of nickname from index 3
+		// Switch line format: |switch|p1a: Nickname|Species, L50, F|100/100
+		unparsedList[x] = strings.Split(unparsedList[x], "|")[2]
 		unparsedList[x] = strings.Split(unparsedList[x], ",")[0]
 	}
 	playedPokemon = removeDuplicates(unparsedList)
@@ -228,7 +232,7 @@ func GetAllPlayedPokemonFromPlayerId(replay string, player int) []string {
 func GetGameNumber(replay string) int {
 	checkString := strings.Index(replay, ">Game 1<")
 	if checkString != -1 {
-	 	return 1	
+		return 1
 	}
 	checkString = strings.Index(replay, ">Game 2<")
 	if checkString != -1 {
@@ -247,11 +251,11 @@ func GetMatchUUID(replay string) string {
 	return ""
 }
 
-func GetTera(replay string, playerId int) string{
+func GetTera(replay string, playerId int) string {
 	var parseLine string
-	if(playerId == 1) {
+	if playerId == 1 {
 		parseLine = searchLineWithPrefix(replay, "|-terastallize|p1")
-	}else {
+	} else {
 		parseLine = searchLineWithPrefix(replay, "|-terastallize|p2")
 	}
 	if len(parseLine) > 1 {
@@ -261,4 +265,63 @@ func GetTera(replay string, playerId int) string{
 		return parseLine
 	}
 	return "-"
+}
+
+// MoveUsage represents a move used by a Pokemon in a game
+type MoveUsage struct {
+	PokemonName string
+	MoveName    string
+}
+
+// GetMoveUsage extracts all moves used by a player during a game
+func GetMoveUsage(replay string, playerId int) []MoveUsage {
+	var moveUsages []MoveUsage
+	var searchString string
+
+	if playerId == 1 {
+		searchString = "|move|p1"
+	} else {
+		searchString = "|move|p2"
+	}
+
+	moveLines := findAllLinesWithSubstring(replay, searchString)
+
+	for _, line := range moveLines {
+		// Move line format: |move|p1a: Pokemon|Move Name|Target
+		parts := strings.Split(line, "|")
+		if len(parts) >= 4 {
+			// Extract Pokemon name (e.g., "p1a: Pokemon" -> "Pokemon")
+			pokemonPart := parts[2]
+			pokemonName := strings.Split(pokemonPart, ":")[1]
+			pokemonName = strings.TrimSpace(pokemonName)
+
+			// Extract move name
+			moveName := parts[3]
+			moveName = strings.TrimSpace(moveName)
+
+			// Skip if move name is empty or is a special move
+			if moveName != "" && moveName != "Struggle" {
+				moveUsages = append(moveUsages, MoveUsage{
+					PokemonName: pokemonName,
+					MoveName:    moveName,
+				})
+			}
+		}
+	}
+
+	return moveUsages
+}
+
+// GetPokemonMovesFromTeam extracts the moves from a team's OTS (showteam) data
+func GetPokemonMovesFromTeam(replay string, playerId int) map[string][]string {
+	pokemonMoves := make(map[string][]string)
+
+	ots := GetOts(replay, playerId)
+	team := parseTeam(ots)
+
+	for _, pokemon := range team.Pokemons {
+		pokemonMoves[pokemon.Name] = pokemon.Moves
+	}
+
+	return pokemonMoves
 }

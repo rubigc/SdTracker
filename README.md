@@ -1,172 +1,140 @@
 # SdTracker
 
-A Program to track Showdown games and ELO inspired by Poker hand trackers.
+A desktop app to track Pokemon Showdown games, analyze performance, and manage teams/accounts.
 
-## Overview
+## Features
 
-SdTracker is a comprehensive Pokemon Showdown game tracking system with a desktop frontend application. It allows you to:
-
-- Track Pokemon Showdown games automatically
-- View detailed player statistics and winrates
-- Analyze lead Pokemon and Terastallization type performance
-- Review complete game history
-- Test and explore REST API
+- **Automatic tracking** of Pokemon Showdown replays
+- **Manual replay upload** via URL, file upload, or HTML paste
+- **Statistics dashboard** with winrates, leads, tera usage, and match history
+- **Teams & accounts** management
+- **Move usage** stats with win rates per move
+- **Auto-start** for API server + parser (toggle in Settings)
+- **API Explorer** for debugging endpoints
 
 ## Components
 
-### Backend (Go)
-- REST API server running on port 3001
-- SQLite database for storing game data
-- Endpoints for winrates, lead stats, tera stats, and history
-
 ### Parser (Go)
-- HTTP server running on port 8098
-- Receives replay URLs from Pokemon Showdown
-- Processes and stores game data in the database
+- HTTP server on port 8098
+- Receives replay URLs or HTML content
+- Parses and stores game data
+
+### API Server (Rust / Actix, inside Tauri)
+- REST API on port 3001
+- Serves stats, accounts, teams, and move usage
+- Started/stopped from the app
 
 ### Frontend (Tauri + React)
-- Desktop application for managing parser and viewing statistics
-- Parser Dashboard: Start/stop parser and monitor status
-- Statistics Dashboard: View detailed player statistics
-- API Explorer: Test backend endpoints interactively
+- Desktop app for controlling services and viewing stats
 
-## Quick Start
+## Quick Start (Development)
 
 ### Prerequisites
 
 - Go 1.21+
 - Node.js 18+ and npm
-- Rust and Cargo (for building Tauri app)
+- Rust and Cargo (Tauri)
 
-### Running the Application
+### Build the parser resource
 
-#### Development Mode:
-1. **Start Backend API**:
-   ```bash
-   cd go-backend
-   go run cmd/api/main.go
-   ```
+The parser runs as a bundled resource in the app. Build it into the Tauri resources folder:
 
-2. **Run Frontend**:
-   ```bash
-   cd frontend
-   npm install
-   npm run tauri dev
-   ```
+```bash
+cd parser
+go build -o ../frontend/src-tauri/resources/parser cmd/sdtracker/main.go
+```
 
-The Tauri application will open and you can:
-- Start the parser from the Parser Dashboard
-- View statistics from the Statistics Dashboard
-- Test API endpoints from the API Explorer
+### Run the app
 
-#### Building Standalone Installer:
-
-For creating a distributable installer that includes all components:
-
-**Linux/macOS:**
 ```bash
 cd frontend
+npm install
+npm run tauri dev
+```
+
+## Using the App
+
+1. **Auto-start**
+   - The API server auto-starts on app launch.
+   - The parser auto-starts if a username is saved.
+   - Toggle auto-start in **Settings**.
+
+2. **Start the parser (first time)**
+   - Go to **Settings → Parser**
+   - Enter your Pokemon Showdown username
+   - Click **Start** to launch the parser
+
+3. **Upload replays**
+   - Use the **Parser Control** tabs to submit by URL, upload an HTML file, or paste HTML
+
+4. **View stats**
+   - Open **Statistics** to see winrates, leads, tera usage, and match history
+
+5. **Manage teams**
+   - Open **Teams** to create accounts, add teams, and view team stats
+
+## Building a Standalone Installer
+
+From the repo root:
+
+**Linux/macOS**
+```bash
 chmod +x build-all.sh
 ./build-all.sh
 ```
 
-**Windows:**
+**Windows**
 ```batch
-cd frontend
 build-all.bat
 ```
 
 This will:
-1. Compile Go backend to executable
-2. Compile Go parser to executable
-3. Copy executables to resources directory
-4. Build Tauri application with bundled resources
-5. Generate platform-specific installer (NSIS/DMG/AppImage)
+1. Build the parser binary
+2. Copy parser data files into resources
+3. Build the Tauri app and bundle everything
 
-See [`frontend/STANDALONE_IMPLEMENTATION.md`](frontend/STANDALONE_IMPLEMENTATION.md) for details on the standalone packaging implementation.
+Installers are created in `frontend/src-tauri/target/release/bundle/`.
 
 ## Project Structure
 
 ```
 SdTracker/
-├── go-backend/              # Go backend API
-│   ├── cmd/api/            # API server entry point
-│   ├── pkg/                # Backend packages
-│   │   ├── api/           # API handlers
-│   │   ├── db/            # Database queries
-│   │   ├── models/         # Data models
-│   │   └── service/       # Business logic
-│   └── go.mod
-├── parser/                 # Go parser
-│   ├── cmd/sdtracker/      # Parser entry point
-│   ├── pkg/                # Parser packages
-│   └── go.mod
+├── parser/                 # Go parser server
 ├── frontend/               # Tauri desktop app
 │   ├── src/                # React source
-│   │   ├── components/      # React components
-│   │   │   ├── common/      # Shared UI components
-│   │   │   ├── parser/      # Parser management components
-│   │   │   └── stats/       # Statistics components
-│   │   ├── pages/           # Page components
-│   │   ├── hooks/           # Custom React hooks
-│   │   ├── services/        # API service layer
-│   │   ├── types/           # TypeScript types
-│   │   └── utils/           # Utility functions
-│   ├── src-tauri/          # Rust backend
-│   │   ├── src/
-│   │   │   ├── main.rs      # Tauri entry point
-│   │   │   ├── lib.rs       # Library exports and commands
-│   │   │   ├── backend.rs    # Backend process manager
-│   │   │   └── parser.rs     # Parser process manager
-│   │   ├── Cargo.toml       # Rust dependencies
-│   │   └── tauri.conf.json  # Tauri configuration
-│   ├── build-all.sh         # Linux/macOS build script
-│   ├── build-all.bat         # Windows build script
-│   └── package.json         # Node dependencies
-└── plans/                  # Architecture plans
+│   ├── src-tauri/          # Rust backend + Tauri config
+│   └── dist/               # Vite build output
+├── plans/                  # Architecture / implementation plans
+├── replays/                # Sample replays
+├── screenshots/            # UI screenshots
+├── build-all.sh            # Linux/macOS build script
+└── build-all.bat           # Windows build script
 ```
 
 ## API Endpoints
 
 ### Backend API (Port 3001)
 
-- `GET /api/winrates/:name` - Get winrate statistics for a player
-- `GET /api/leads/:name` - Get lead Pokemon statistics for a player
-- `GET /api/tera/:name` - Get Terastallization type statistics for a player
-- `GET /api/history/:name` - Get game history for a player
+- `GET /api/winrates/:name`
+- `GET /api/leads/:name`
+- `GET /api/tera/:name`
+- `GET /api/history/:name`
+- `GET /api/accounts`
+- `POST /api/accounts`
+- `PUT /api/accounts/:id`
+- `GET /api/teams`
+- `GET /api/accounts/:id/teams`
+- `POST /api/teams`
+- `PUT /api/teams/:id`
+- `DELETE /api/teams/:id`
+- `GET /api/accounts/:id/moves?team_id=...`
+- `GET /api/accounts/:id/moves/:pokemon`
 
 ### Parser API (Port 8098)
 
-- `POST /receive-logs` - Accept replay URLs from Pokemon Showdown
-
-## Documentation
-
-- [Frontend Architecture Plan](plans/tauri-frontend-plan.md)
-- [Standalone Packaging Plan](plans/standalone-packaging-plan.md)
-- [Standalone Implementation Guide](frontend/STANDALONE_IMPLEMENTATION.md)
-- [Frontend README](frontend/README.md)
-
-## Building
-
-### Build Backend
-```bash
-cd go-backend
-go build -o sdtracker-api cmd/api/main.go
-```
-
-### Build Parser
-```bash
-cd parser
-go build -o sdtracker-parser cmd/sdtracker/main.go
-```
-
-### Build Frontend
-```bash
-cd frontend
-npm run tauri build
-```
-
-This creates a distributable package in `frontend/src-tauri/target/release/bundle/`.
+- `POST /receive-logs` (URL-based replay download)
+- `POST /upload-replay` (HTML file upload)
+- `POST /paste-replay` (paste HTML content)
 
 ## License
 

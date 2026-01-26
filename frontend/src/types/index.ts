@@ -40,6 +40,63 @@ export interface Player {
   ots: string;
 }
 
+// Account Types
+export interface Account {
+  id: number;
+  name: string;
+  created_at: string;
+  is_active: boolean;
+}
+
+export interface CreateAccountRequest {
+  name: string;
+}
+
+export interface UpdateAccountRequest {
+  is_active: boolean;
+}
+
+// Team Types
+export interface Team {
+  id: number;
+  name: string;
+  account_id: number | null;
+  team_data: string;
+  created_at: string;
+  last_used: string | null;
+  games_played: number;
+  wins: number;
+}
+
+export interface CreateTeamRequest {
+  name: string;
+  account_id?: number;
+  team_data: string;
+}
+
+export interface UpdateTeamRequest {
+  name?: string;
+  team_data?: string;
+}
+
+// Move Usage Types
+export interface MoveUsage {
+  id: number;
+  game_id: number;
+  account_id: number;
+  pokemon_name: string;
+  move_name: string;
+  usage_count: number;
+}
+
+export interface MoveStats {
+  pokemon_name: string;
+  move_name: string;
+  total_usage: number;
+  games_played: number;
+  win_rate: number;
+}
+
 // Parser Types
 export interface ParserStatus {
   running: boolean;
