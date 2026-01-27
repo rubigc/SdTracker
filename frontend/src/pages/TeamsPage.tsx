@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
 import { useBackend } from '../hooks/useBackend';
@@ -20,6 +20,27 @@ export function TeamsPage() {
   const [newTeamData, setNewTeamData] = useState('');
   const [accountCreateError, setAccountCreateError] = useState<string | null>(null);
   const [teamCreateError, setTeamCreateError] = useState<string | null>(null);
+  const [apiDebugEntries, setApiDebugEntries] = useState<ApiDebugEntry[]>([]);
+  const [showApiDebug, setShowApiDebug] = useState(false);
+
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<ApiDebugEntry>).detail;
+      if (!detail) {
+        return;
+      }
+      setApiDebugEntries((prev) => {
+        const next = [...prev, detail];
+        if (next.length > 200) {
+          next.splice(0, next.length - 200);
+        }
+        return next;
+      });
+    };
+
+    window.addEventListener('sdtracker-api-debug', handler as EventListener);
+    return () => window.removeEventListener('sdtracker-api-debug', handler as EventListener);
+  }, []);
 
   // Fetch accounts
   const { data: accounts, isLoading: accountsLoading, isError: accountsHasError, error: accountsError } = useQuery({
@@ -306,7 +327,7 @@ export function TeamsPage() {
               className="mb-4"
             />
             <textarea
-              placeholder="Paste your team data here (from Pokemon Showdown)"
+              placeholder="Paste your team data here (from Pokemon Showdown) or a pokepast.es link"
               value={newTeamData}
               onChange={(e) => setNewTeamData(e.target.value)}
               className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white mb-4 min-h-50 resize-y"
@@ -332,6 +353,62 @@ export function TeamsPage() {
           </Card>
         </div>
       )}
+
+      {/* API Debug Panel */}
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">API Debug</h2>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowApiDebug((prev) => !prev)}
+            >
+              {showApiDebug ? 'Hide' : 'Show'}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setApiDebugEntries([])}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+        {showApiDebug ? (
+          <pre className="text-xs bg-gray-900 p-3 rounded overflow-x-auto max-h-80">
+            {apiDebugEntries.length === 0
+              ? 'No requests yet.'
+              : apiDebugEntries
+                  .map((entry) => formatApiDebugEntry(entry))
+                  .join('\n')}
+          </pre>
+        ) : (
+          <div className="text-gray-400 text-sm">Enable to view recent API requests.</div>
+        )}
+      </Card>
     </div>
   );
+}
+
+type ApiDebugStage = 'request' | 'response' | 'error';
+
+interface ApiDebugEntry {
+  id: number;
+  stage: ApiDebugStage;
+  method: string;
+  url: string;
+  status?: number;
+  ok?: boolean;
+  error?: string;
+  body?: string;
+  time: string;
+}
+
+function formatApiDebugEntry(entry: ApiDebugEntry) {
+  const status = entry.status !== undefined ? ` ${entry.status}` : '';
+  const ok = entry.ok !== undefined ? ` ${entry.ok ? 'ok' : 'fail'}` : '';
+  const body = entry.body ? ` body=${entry.body}` : '';
+  const error = entry.error ? ` error=${entry.error}` : '';
+  return `${entry.time} [${entry.stage}] ${entry.method} ${entry.url}${status}${ok}${body}${error}`;
 }

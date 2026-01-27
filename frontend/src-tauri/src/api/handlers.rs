@@ -1,4 +1,5 @@
 use actix_web::{web, HttpResponse, Responder};
+use reqwest::Url;
 use std::sync::{Arc, Mutex};
 use super::models::*;
 use super::db::Database;
@@ -534,6 +535,16 @@ pub async fn create_team(
     req: web::Json<CreateTeamRequest>,
     db: web::Data<Arc<Mutex<Database>>>,
 ) -> impl Responder {
+    let resolved_team_data = match resolve_team_data(&req.team_data).await {
+        Ok(data) => data,
+        Err(message) => {
+            return HttpResponse::BadRequest().json(serde_json::json!({
+                "error": "Invalid team data",
+                "details": message
+            }));
+        }
+    };
+
     let db_guard = match db.lock() {
         Ok(guard) => guard,
         Err(e) => {
@@ -545,7 +556,7 @@ pub async fn create_team(
         }
     };
     
-    match db_guard.create_team(&req.name, req.account_id, &req.team_data) {
+    match db_guard.create_team(&req.name, req.account_id, &resolved_team_data) {
         Ok(id) => HttpResponse::Ok().json(serde_json::json!({
             "id": id,
             "name": req.name
@@ -558,6 +569,74 @@ pub async fn create_team(
             }))
         }
     }
+}
+
+async fn resolve_team_data(input: &str) -> Result<String, String> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return Ok(String::new());
+    }
+    if trimmed.split_whitespace().count() != 1 {
+        return Ok(input.to_string());
+    }
+
+    match parse_pokepast_raw_url(trimmed)? {
+        Some(raw_url) => fetch_pokepast_raw(&raw_url).await,
+        None => Ok(input.to_string()),
+    }
+}
+
+fn parse_pokepast_raw_url(input: &str) -> Result<Option<String>, String> {
+    let candidate = if input.starts_with("http://") || input.starts_with("https://") {
+        input.to_string()
+    } else {
+        format!("https://{}", input)
+    };
+
+    let url = match Url::parse(&candidate) {
+        Ok(url) => url,
+        Err(_) => {
+            if input.contains("pokepast.es") {
+                return Err("Invalid Pokepast URL.".to_string());
+            }
+            return Ok(None);
+        }
+    };
+
+    let host = url.host_str().unwrap_or("").to_ascii_lowercase();
+    if host != "pokepast.es" && host != "www.pokepast.es" {
+        return Ok(None);
+    }
+
+    let mut segments = url
+        .path_segments()
+        .ok_or_else(|| "Pokepast link is missing a paste id.".to_string())?;
+    let id = segments.next().unwrap_or("");
+    if id.is_empty() || id.eq_ignore_ascii_case("raw") {
+        return Err("Pokepast link is missing a paste id.".to_string());
+    }
+
+    Ok(Some(format!("https://pokepast.es/{}/raw", id)))
+}
+
+async fn fetch_pokepast_raw(raw_url: &str) -> Result<String, String> {
+    let response = reqwest::get(raw_url)
+        .await
+        .map_err(|e| format!("Failed to fetch Pokepast: {}", e))?;
+    if !response.status().is_success() {
+        return Err(format!(
+            "Pokepast request failed with status {}.",
+            response.status()
+        ));
+    }
+    let text = response
+        .text()
+        .await
+        .map_err(|e| format!("Failed to read Pokepast response: {}", e))?;
+    if text.trim().is_empty() {
+        return Err("Pokepast paste is empty.".to_string());
+    }
+    Ok(text)
 }
 
 pub async fn update_team(

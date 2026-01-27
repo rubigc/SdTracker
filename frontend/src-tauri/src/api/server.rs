@@ -37,7 +37,7 @@ impl ApiServer {
                                     true // Allow all origins for development
                                 })
                                 .allowed_methods(vec!["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-                                .allowed_headers(vec!["*"])
+                                .allow_any_header()
                         )
                         .app_data(db_data.clone())
                         .configure(routes::configure_routes)
