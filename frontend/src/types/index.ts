@@ -34,10 +34,10 @@ export interface HistoryGame {
 
 export interface Player {
   name: string;
-  team: string;
-  lead: string;
-  tera: string;
-  ots: string;
+  team?: string | null;
+  lead?: string | null;
+  tera?: string | null;
+  ots?: string | null;
 }
 
 // Account Types

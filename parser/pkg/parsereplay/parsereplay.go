@@ -63,6 +63,60 @@ func findAllLinesWithSubstring(text string, substr string) []string {
 	return results
 }
 
+func extractSpeciesFromSwitchLine(line string) string {
+	parts := strings.Split(line, "|")
+	if len(parts) < 3 {
+		return ""
+	}
+
+	// Switch line format: |switch|p1a: Nickname|Species, L50, F|100/100
+	speciesPart := ""
+	if len(parts) >= 4 && strings.TrimSpace(parts[3]) != "" {
+		speciesPart = parts[3]
+	} else {
+		speciesPart = parts[2]
+	}
+
+	if strings.Contains(speciesPart, ",") {
+		speciesPart = strings.Split(speciesPart, ",")[0]
+	}
+
+	if strings.Contains(speciesPart, ":") {
+		speciesPart = strings.SplitN(speciesPart, ":", 2)[1]
+	}
+
+	return strings.TrimSpace(speciesPart)
+}
+
+func getShowteamData(replay string, player int) string {
+	if player == 1 {
+		ots := searchLineWithPrefix(replay, "|showteam|p1|")
+		return strings.ReplaceAll(ots, "|showteam|p1|", "")
+	}
+	ots := searchLineWithPrefix(replay, "|showteam|p2|")
+	return strings.ReplaceAll(ots, "|showteam|p2|", "")
+}
+
+func getUrsalunaFormFromOts(replay string, player int) string {
+	ots := strings.TrimSpace(getShowteamData(replay, player))
+	if ots == "" {
+		return ""
+	}
+
+	team := parseTeam(ots)
+	for _, pokemon := range team.Pokemons {
+		name := strings.TrimSpace(pokemon.Name)
+		if strings.EqualFold(name, "Ursaluna-Bloodmoon") {
+			return pokemon.Name
+		}
+		if strings.HasPrefix(strings.ToLower(name), "ursaluna-") {
+			return pokemon.Name
+		}
+	}
+
+	return ""
+}
+
 func GetOts(replay string, player int) string {
 	ots := ""
 
@@ -183,6 +237,7 @@ func GetLeadFromPlayerId(replay string, player int) []string {
 	var lead []string
 	var l1, l2 string
 	var searchString string
+	ursalunaForm := getUrsalunaFormFromOts(replay, player)
 
 	if player == 1 {
 		searchString = "|switch|p1"
@@ -193,12 +248,14 @@ func GetLeadFromPlayerId(replay string, player int) []string {
 	l1 = searchLineWithPrefix(replay, searchString+"a:")
 	l2 = searchLineWithPrefix(replay, searchString+"b:")
 
-	// Extract the full species name with form from index 2 instead of nickname from index 3
-	// Switch line format: |switch|p1a: Nickname|Species, L50, F|100/100
-	l1 = strings.Split(l1, "|")[2]
-	l1 = strings.Split(l1, ",")[0]
-	l2 = strings.Split(l2, "|")[2]
-	l2 = strings.Split(l2, ",")[0]
+	l1 = extractSpeciesFromSwitchLine(l1)
+	l2 = extractSpeciesFromSwitchLine(l2)
+	if ursalunaForm != "" && strings.EqualFold(l1, "Ursaluna") {
+		l1 = ursalunaForm
+	}
+	if ursalunaForm != "" && strings.EqualFold(l2, "Ursaluna") {
+		l2 = ursalunaForm
+	}
 
 	lead = append(lead, l1)
 	lead = append(lead, l2)
@@ -209,6 +266,7 @@ func GetLeadFromPlayerId(replay string, player int) []string {
 func GetAllPlayedPokemonFromPlayerId(replay string, player int) []string {
 	var playedPokemon []string
 	var searchString string
+	ursalunaForm := getUrsalunaFormFromOts(replay, player)
 
 	if player == 1 {
 		searchString = "|switch|p1"
@@ -219,10 +277,10 @@ func GetAllPlayedPokemonFromPlayerId(replay string, player int) []string {
 	unparsedList := findAllLinesWithSubstring(replay, searchString)
 
 	for x := range unparsedList {
-		// Extract the full species name with form from index 2 instead of nickname from index 3
-		// Switch line format: |switch|p1a: Nickname|Species, L50, F|100/100
-		unparsedList[x] = strings.Split(unparsedList[x], "|")[2]
-		unparsedList[x] = strings.Split(unparsedList[x], ",")[0]
+		unparsedList[x] = extractSpeciesFromSwitchLine(unparsedList[x])
+		if ursalunaForm != "" && strings.EqualFold(unparsedList[x], "Ursaluna") {
+			unparsedList[x] = ursalunaForm
+		}
 	}
 	playedPokemon = removeDuplicates(unparsedList)
 
@@ -262,6 +320,11 @@ func GetTera(replay string, playerId int) string {
 		parseLine = strings.Split(parseLine, "|")[2]
 		parseLine = strings.Split(parseLine, ":")[1]
 		parseLine = strings.ReplaceAll(parseLine, " ", "")
+		if strings.EqualFold(parseLine, "Ursaluna") {
+			if form := getUrsalunaFormFromOts(replay, playerId); form != "" {
+				return form
+			}
+		}
 		return parseLine
 	}
 	return "-"

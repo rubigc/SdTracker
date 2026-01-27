@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../services/api';
+import { api, createPokepast } from '../services/api';
 import { useBackend } from '../hooks/useBackend';
-import type { Account } from '../types';
+import type { Account, Team } from '../types';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Input } from '../components/common/Input';
+import { Toast } from '../components/common/Toast';
 import { StatusIndicator } from '../components/common/StatusIndicator';
 import { Users, Plus, Trash2, Edit, Trophy, Calendar, AlertCircle, Server } from 'lucide-react';
+import { formatPokemonName, getPokemonSpriteUrl } from '../utils/pokemonSprites';
+import { getItemSpriteUrl, parseTeamData } from '../utils/teamParser';
+import { buildShowdownExport, type ShowdownVariant } from '../utils/showdownExport';
+import { useToast } from '../hooks/useToast';
 
 export function TeamsPage() {
   const queryClient = useQueryClient();
@@ -22,6 +27,8 @@ export function TeamsPage() {
   const [teamCreateError, setTeamCreateError] = useState<string | null>(null);
   const [apiDebugEntries, setApiDebugEntries] = useState<ApiDebugEntry[]>([]);
   const [showApiDebug, setShowApiDebug] = useState(false);
+  const [pokepastLoading, setPokepastLoading] = useState<Record<string, boolean>>({});
+  const toast = useToast();
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -127,12 +134,37 @@ export function TeamsPage() {
     }
   };
 
+  const handleCreatePokepast = async (team: Team, variant: ShowdownVariant) => {
+    const key = `${team.id}-${variant}`;
+    if (pokepastLoading[key]) {
+      return;
+    }
+
+    const exportText = buildShowdownExport(team.team_data, variant);
+    if (!exportText.trim()) {
+      toast.show('Could not create Pokepast. Please try again.');
+      return;
+    }
+
+    setPokepastLoading((prev) => ({ ...prev, [key]: true }));
+    try {
+      const title = `${team.name} (${variant})`;
+      const url = await createPokepast(exportText, title);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      toast.show('Could not create Pokepast. Please try again.');
+    } finally {
+      setPokepastLoading((prev) => ({ ...prev, [key]: false }));
+    }
+  };
+
   const filteredTeams = selectedAccount
     ? teams?.filter(team => team.account_id === selectedAccount.id)
     : teams;
 
   return (
     <div className="space-y-6">
+      {toast.message ? <Toast message={toast.message} onClose={toast.clear} /> : null}
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Teams & Accounts</h1>
         <div className="flex items-center gap-3">
@@ -229,48 +261,107 @@ export function TeamsPage() {
           </div>
         ) : filteredTeams && filteredTeams.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredTeams.map((team) => (
-              <div
-                key={team.id}
-                className="bg-gray-800 rounded-lg p-4 hover:bg-gray-750 transition-colors"
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-semibold text-lg">{team.name}</h3>
-                  <button
-                    onClick={() => handleDeleteTeam(team.id)}
-                    className="text-red-400 hover:text-red-300"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center text-gray-400">
-                    <Trophy className="w-4 h-4 mr-2" />
-                    <span>{team.wins} wins / {team.games_played} games</span>
+            {filteredTeams.map((team) => {
+              const teamMembers = parseTeamData(team.team_data);
+              const otsKey = `${team.id}-OTS`;
+              const ctsKey = `${team.id}-CTS`;
+              const isCreatingOts = Boolean(pokepastLoading[otsKey]);
+              const isCreatingCts = Boolean(pokepastLoading[ctsKey]);
+              return (
+                <div
+                  key={team.id}
+                  className="bg-gray-800 rounded-lg p-4 hover:bg-gray-750 transition-colors"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="font-semibold text-lg">{team.name}</h3>
+                    <button
+                      onClick={() => handleDeleteTeam(team.id)}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  
-                  {team.last_used && (
-                    <div className="flex items-center text-gray-400">
-                      <Calendar className="w-4 h-4 mr-2" />
-                      <span>Last used: {new Date(team.last_used).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center text-gray-400">
-                    <Edit className="w-4 h-4 mr-2" />
-                    <span>Created: {new Date(team.created_at).toLocaleDateString()}</span>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={isCreatingOts}
+                      onClick={() => handleCreatePokepast(team, 'OTS')}
+                    >
+                      {isCreatingOts ? 'Creating...' : 'OTS'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={isCreatingCts}
+                      onClick={() => handleCreatePokepast(team, 'CTS')}
+                    >
+                      {isCreatingCts ? 'Creating...' : 'CTS'}
+                    </Button>
                   </div>
-                </div>
 
-                <div className="mt-3 pt-3 border-t border-gray-700">
-                  <div className="text-xs text-gray-500 mb-1">Team Preview:</div>
-                  <pre className="text-xs bg-gray-900 p-2 rounded overflow-x-auto">
-                    {team.team_data.substring(0, 100)}...
-                  </pre>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center text-gray-400">
+                      <Trophy className="w-4 h-4 mr-2" />
+                      <span>{team.wins} wins / {team.games_played} games</span>
+                    </div>
+
+                    {team.last_used && (
+                      <div className="flex items-center text-gray-400">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        <span>Last used: {new Date(team.last_used).toLocaleDateString()}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center text-gray-400">
+                      <Edit className="w-4 h-4 mr-2" />
+                      <span>Created: {new Date(team.created_at).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-gray-700">
+                    <div className="text-xs text-gray-500 mb-2">Team Preview</div>
+                    {teamMembers.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-2">
+                        {teamMembers.map((member, index) => {
+                          const itemSprite = getItemSpriteUrl(member.item);
+                          return (
+                            <div key={`${member.pokemon}-${index}`} className="text-center">
+                              <div className="relative mx-auto w-12 h-12">
+                                <img
+                                  src={getPokemonSpriteUrl(member.pokemon)}
+                                  alt={member.pokemon}
+                                  className="pokemon-sprite w-12 h-12"
+                                  onError={(e) => {
+                                    e.currentTarget.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png';
+                                  }}
+                                />
+                                {itemSprite && (
+                                  <img
+                                    src={itemSprite}
+                                    alt={member.item ?? 'Item'}
+                                    title={member.item}
+                                    className="absolute bottom-0 right-0 w-4 h-4 rounded-sm bg-gray-900/80 p-0.5 shadow"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                )}
+                              </div>
+                              <p className="text-[10px] text-gray-400 mt-1 truncate">
+                                {formatPokemonName(member.pokemon)}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-500">No preview available.</div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-gray-400">

@@ -17,6 +17,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
             .route("/teams/{id}", web::delete().to(handlers::delete_team))
             .route("/teams/{id}", web::get().to(handlers::get_team_by_id))
             .route("/accounts/{id}/teams", web::get().to(handlers::get_teams_by_account))
+            .route("/pokepaste", web::post().to(handlers::create_pokepaste))
             .route("/accounts/{id}/winrates", web::get().to(handlers::get_winrates))
             .route("/accounts/{id}/leads", web::get().to(handlers::get_leads))
             .route("/accounts/{id}/tera", web::get().to(handlers::get_tera))

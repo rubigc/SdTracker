@@ -103,6 +103,14 @@ pub struct UpdateTeamRequest {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct CreatePokepasteRequest {
+    pub text: String,
+    pub title: Option<String>,
+    pub author: Option<String>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct RecordTeamUsageRequest {
     pub game_id: i64,
     pub team_id: i64,
@@ -181,8 +189,10 @@ pub struct HistoryResult {
     pub player_team: Option<String>,
     pub player_lead: Option<String>,
     pub player_tera: Option<String>,
+    pub player_ots: Option<String>,
     pub opponent: Option<String>,
     pub opponent_team: Option<String>,
     pub opponent_lead: Option<String>,
     pub opponent_tera: Option<String>,
+    pub opponent_ots: Option<String>,
 }

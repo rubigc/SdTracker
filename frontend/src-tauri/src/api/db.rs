@@ -307,8 +307,8 @@ impl Database {
         let results = if let Some(team_id) = team_id {
             let mut stmt = self.conn.prepare_cached(
                 "SELECT g.id AS game_id, g.game_number, g.winner,
-                       gp.team_pokemon AS player_team, gp.lead_pokemon AS player_lead, gp.tera_used AS player_tera,
-                       opp.player_name AS opponent, opp.team_pokemon AS opponent_team, opp.lead_pokemon AS opponent_lead, opp.tera_used AS opponent_tera
+                       gp.team_pokemon AS player_team, gp.lead_pokemon AS player_lead, gp.tera_used AS player_tera, gp.ots AS player_ots,
+                       opp.player_name AS opponent, opp.team_pokemon AS opponent_team, opp.lead_pokemon AS opponent_lead, opp.tera_used AS opponent_tera, opp.ots AS opponent_ots
                  FROM games g
                  JOIN matches m ON g.match_id = m.id
                  JOIN team_usage tu ON tu.game_id = g.id AND tu.team_id = ?2 AND tu.account_id = ?3
@@ -326,18 +326,20 @@ impl Database {
                     player_team: row.get(3)?,
                     player_lead: row.get(4)?,
                     player_tera: row.get(5)?,
-                    opponent: row.get(6)?,
-                    opponent_team: row.get(7)?,
-                    opponent_lead: row.get(8)?,
-                    opponent_tera: row.get(9)?,
+                    player_ots: row.get(6)?,
+                    opponent: row.get(7)?,
+                    opponent_team: row.get(8)?,
+                    opponent_lead: row.get(9)?,
+                    opponent_tera: row.get(10)?,
+                    opponent_ots: row.get(11)?,
                 })
             })?.collect::<Result<Vec<_>>>()?;
             rows
         } else {
             let mut stmt = self.conn.prepare_cached(
                 "SELECT g.id AS game_id, g.game_number, g.winner,
-                       gp.team_pokemon AS player_team, gp.lead_pokemon AS player_lead, gp.tera_used AS player_tera,
-                       opp.player_name AS opponent, opp.team_pokemon AS opponent_team, opp.lead_pokemon AS opponent_lead, opp.tera_used AS opponent_tera
+                       gp.team_pokemon AS player_team, gp.lead_pokemon AS player_lead, gp.tera_used AS player_tera, gp.ots AS player_ots,
+                       opp.player_name AS opponent, opp.team_pokemon AS opponent_team, opp.lead_pokemon AS opponent_lead, opp.tera_used AS opponent_tera, opp.ots AS opponent_ots
                  FROM games g
                  JOIN matches m ON g.match_id = m.id
                  JOIN game_players gp ON g.id = gp.game_id AND gp.player_name = ?1
@@ -354,10 +356,12 @@ impl Database {
                     player_team: row.get(3)?,
                     player_lead: row.get(4)?,
                     player_tera: row.get(5)?,
-                    opponent: row.get(6)?,
-                    opponent_team: row.get(7)?,
-                    opponent_lead: row.get(8)?,
-                    opponent_tera: row.get(9)?,
+                    player_ots: row.get(6)?,
+                    opponent: row.get(7)?,
+                    opponent_team: row.get(8)?,
+                    opponent_lead: row.get(9)?,
+                    opponent_tera: row.get(10)?,
+                    opponent_ots: row.get(11)?,
                 })
             })?.collect::<Result<Vec<_>>>()?;
             rows

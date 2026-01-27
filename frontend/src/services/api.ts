@@ -206,3 +206,29 @@ export const api = {
     return requestJson<MoveStats[]>(`${API_BASE}/accounts/${accountId}/moves/${encodeURIComponent(pokemonName)}`);
   },
 };
+
+export async function createPokepast(
+  pasteText: string,
+  title?: string,
+  author?: string,
+  notes?: string
+): Promise<string> {
+  const payload = {
+    text: pasteText,
+    title: title?.trim() || undefined,
+    author: author?.trim() || undefined,
+    notes: notes?.trim() || undefined,
+  };
+
+  const response = await requestJson<{ url: string }>(`${API_BASE}/pokepaste`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response?.url) {
+    throw new Error('Pokepast creation failed.');
+  }
+
+  return response.url;
+}

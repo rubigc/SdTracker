@@ -1,5 +1,5 @@
 use actix_web::{web, HttpResponse, Responder};
-use reqwest::Url;
+use reqwest::{header::LOCATION, redirect::Policy, Url};
 use std::sync::{Arc, Mutex};
 use super::models::*;
 use super::db::Database;
@@ -326,7 +326,7 @@ fn get_history_games(
                 team: r.player_team,
                 lead: r.player_lead,
                 tera: r.player_tera,
-                ots: None,
+                ots: r.player_ots,
             };
             
             let opponent = Player {
@@ -334,7 +334,7 @@ fn get_history_games(
                 team: r.opponent_team,
                 lead: r.opponent_lead,
                 tera: r.opponent_tera,
-                ots: None,
+                ots: r.opponent_ots,
             };
             
             HistoryGame {
@@ -700,6 +700,87 @@ pub async fn delete_team(
             }))
         }
     }
+}
+
+pub async fn create_pokepaste(req: web::Json<CreatePokepasteRequest>) -> impl Responder {
+    if req.text.trim().is_empty() {
+        return HttpResponse::BadRequest().json(serde_json::json!({
+            "error": "Missing team text"
+        }));
+    }
+
+    // If Pokepast form fields change, verify them by inspecting a browser form submit.
+    let mut form = Vec::with_capacity(4);
+    form.push(("paste", req.text.clone()));
+    if let Some(title) = req.title.as_deref().map(str::trim).filter(|value| !value.is_empty()) {
+        form.push(("title", title.to_string()));
+    }
+    let author = req
+        .author
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("Sdtracker");
+    form.push(("author", author.to_string()));
+    if let Some(notes) = req.notes.as_deref().map(str::trim).filter(|value| !value.is_empty()) {
+        form.push(("notes", notes.to_string()));
+    }
+
+    let client = match reqwest::Client::builder().redirect(Policy::none()).build() {
+        Ok(client) => client,
+        Err(e) => {
+            eprintln!("Error building HTTP client: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to create HTTP client"
+            }));
+        }
+    };
+
+    let response = match client
+        .post("https://pokepast.es/create")
+        .form(&form)
+        .send()
+        .await
+    {
+        Ok(response) => response,
+        Err(e) => {
+            eprintln!("Error creating Pokepast: {}", e);
+            return HttpResponse::BadGateway().json(serde_json::json!({
+                "error": "Failed to reach Pokepast",
+                "details": e.to_string()
+            }));
+        }
+    };
+
+    if response.status().is_redirection() {
+        if let Some(location) = response.headers().get(LOCATION) {
+            if let Ok(location_str) = location.to_str() {
+                let base = Url::parse("https://pokepast.es").unwrap();
+                let paste_url = match base.join(location_str) {
+                    Ok(url) => url.to_string(),
+                    Err(e) => {
+                        eprintln!("Error parsing Pokepast redirect URL: {}", e);
+                        return HttpResponse::InternalServerError().json(serde_json::json!({
+                            "error": "Failed to parse Pokepast URL"
+                        }));
+                    }
+                };
+                return HttpResponse::Ok().json(serde_json::json!({ "url": paste_url }));
+            }
+        }
+
+        return HttpResponse::InternalServerError().json(serde_json::json!({
+            "error": "Pokepast redirect missing location header"
+        }));
+    }
+
+    let status = response.status();
+    let body = response.text().await.unwrap_or_default();
+    eprintln!("Unexpected Pokepast response: {} {}", status, body);
+    HttpResponse::BadGateway().json(serde_json::json!({
+        "error": "Unexpected Pokepast response",
+        "status": status.as_u16()
+    }))
 }
 
 pub async fn get_team_by_id(
