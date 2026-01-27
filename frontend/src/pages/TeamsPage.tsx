@@ -13,6 +13,7 @@ import { formatPokemonName, getPokemonSpriteUrl } from '../utils/pokemonSprites'
 import { getItemSpriteUrl, parseTeamData } from '../utils/teamParser';
 import { buildShowdownExport, type ShowdownVariant } from '../utils/showdownExport';
 import { useToast } from '../hooks/useToast';
+import { openExternal } from '../utils/openExternal';
 
 export function TeamsPage() {
   const queryClient = useQueryClient();
@@ -150,7 +151,7 @@ export function TeamsPage() {
     try {
       const title = `${team.name} (${variant})`;
       const url = await createPokepast(exportText, title);
-      window.open(url, '_blank', 'noopener,noreferrer');
+      await openExternal(url);
     } catch (error) {
       toast.show('Could not create Pokepast. Please try again.');
     } finally {

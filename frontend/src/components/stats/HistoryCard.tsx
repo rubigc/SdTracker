@@ -6,6 +6,7 @@ import type { HistoryGame } from '../../types';
 import { getPokemonSpriteUrl, formatPokemonName } from '../../utils/pokemonSprites';
 import { buildShowdownExport } from '../../utils/showdownExport';
 import { createPokepast } from '../../services/api';
+import { openExternal } from '../../utils/openExternal';
 import { useToast } from '../../hooks/useToast';
 import { Trophy, X } from 'lucide-react';
 
@@ -62,9 +63,15 @@ const TeraIcon = ({ className }: { className?: string }) => (
 const TeamPanel = ({
   player,
   statusDotClass,
+  onCreateOts,
+  isCreating,
+  isDisabled,
 }: {
   player: HistoryGame['player'];
   statusDotClass: string;
+  onCreateOts: () => void;
+  isCreating: boolean;
+  isDisabled: boolean;
 }) => {
   const leadList = splitList(player.lead).slice(0, 2);
   const playedList = splitList(player.team);
@@ -77,16 +84,26 @@ const TeamPanel = ({
 
   return (
     <div className="glass-dark rounded-lg p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <div className={`w-2 h-2 rounded-full ${statusDotClass}`} />
-        <p className="text-sm font-semibold text-white">{player.name}</p>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${statusDotClass}`} />
+          <p className="text-sm font-semibold text-white">{player.name}</p>
+        </div>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={isCreating || isDisabled}
+          onClick={onCreateOts}
+        >
+          {isCreating ? 'Creating...' : 'Get OTS'}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[auto,1fr,auto]">
         <div className="rounded-lg border border-sky-400/40 bg-sky-500/10 p-2">
-          <p className="text-[10px] uppercase tracking-wide text-sky-200/80 mb-2">Lead</p>
+          <p className="text-[9px] uppercase tracking-wide text-sky-200/80 mb-2">Lead</p>
           {leadList.length > 0 ? (
-            <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {leadList.map((pokemon, idx) => (
                 <div
                   key={`${pokemon}-${idx}`}
@@ -107,14 +124,14 @@ const TeamPanel = ({
               ))}
             </div>
           ) : (
-            <p className="text-xs text-sky-100/70">No lead data</p>
+            <p className="text-[11px] text-sky-100/70">No lead data</p>
           )}
         </div>
 
         <div className="rounded-lg border border-white/10 bg-black/20 p-2">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] uppercase text-gray-400">Team</span>
-            <span className="text-[10px] text-gray-500">Shown highlighted</span>
+            <span className="text-[9px] uppercase text-gray-400">Team</span>
+            <span className="text-[9px] text-gray-500">Shown highlighted</span>
           </div>
           {teamList.length > 0 ? (
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
@@ -153,17 +170,17 @@ const TeamPanel = ({
               })}
             </div>
           ) : (
-            <p className="text-xs text-gray-500">No team data</p>
+            <p className="text-[11px] text-gray-500">No team data</p>
           )}
         </div>
 
         <div className="rounded-lg border border-white/10 bg-black/20 p-2">
-          <p className="text-[10px] uppercase text-gray-400 mb-2">Highlights</p>
-          <div className="flex items-center gap-2 text-[11px] text-gray-300">
+          <p className="text-[9px] uppercase text-gray-400 mb-2">Highlights</p>
+          <div className="flex items-center gap-2 text-[10px] text-gray-300">
             <span className="inline-block h-2 w-2 rounded bg-emerald-400/80" />
             <span>In battle</span>
           </div>
-          <div className="flex items-center gap-2 text-[11px] text-gray-300 mt-2">
+          <div className="flex items-center gap-2 text-[10px] text-gray-300 mt-2">
             <TeraIcon className="w-3 h-3 text-cyan-300" />
             <span>Terastalized</span>
           </div>
@@ -177,13 +194,14 @@ export function HistoryCard({ data, loading }: HistoryCardProps) {
   const [creatingMap, setCreatingMap] = useState<Record<string, boolean>>({});
   const toast = useToast();
 
-  const handleCreatePokepast = async (game: HistoryGame) => {
-    const key = `${game.game_id}-${game.game_number}`;
+  const handleCreatePokepast = async (game: HistoryGame, side: 'player' | 'opponent') => {
+    const key = `${game.game_id}-${game.game_number}-${side}`;
     if (creatingMap[key]) {
       return;
     }
 
-    const teamText = buildShowdownExport(game.player.ots ?? '', 'OTS');
+    const ots = side === 'player' ? game.player.ots : game.opponent.ots;
+    const teamText = buildShowdownExport(ots ?? '', 'OTS');
     if (!teamText.trim()) {
       toast.show('Could not create Pokepast. Please try again.');
       return;
@@ -191,9 +209,10 @@ export function HistoryCard({ data, loading }: HistoryCardProps) {
 
     setCreatingMap((prev) => ({ ...prev, [key]: true }));
     try {
-      const title = `Game ${game.game_id} - Match ${game.game_number}`;
+      const playerName = side === 'player' ? game.player.name : game.opponent.name;
+      const title = `${playerName} - Game ${game.game_id} Match ${game.game_number}`;
       const url = await createPokepast(teamText, title);
-      window.open(url, '_blank', 'noopener,noreferrer');
+      await openExternal(url);
     } catch (error) {
       toast.show('Could not create Pokepast. Please try again.');
     } finally {
@@ -241,12 +260,16 @@ export function HistoryCard({ data, loading }: HistoryCardProps) {
           <div className="space-y-4 max-h-150 overflow-y-auto pr-2">
             {data.map((game) => {
               const isPlayerWinner = game.winner === game.player.name;
-              const key = `${game.game_id}-${game.game_number}`;
-              const isCreating = Boolean(creatingMap[key]);
+              const playerKey = `${game.game_id}-${game.game_number}-player`;
+              const opponentKey = `${game.game_id}-${game.game_number}-opponent`;
+              const isCreatingPlayer = Boolean(creatingMap[playerKey]);
+              const isCreatingOpponent = Boolean(creatingMap[opponentKey]);
+              const playerDisabled = !(game.player.ots ?? '').trim();
+              const opponentDisabled = !(game.opponent.ots ?? '').trim();
 
               return (
                 <div
-                  key={key}
+                  key={`${game.game_id}-${game.game_number}`}
                   className={`match-card p-5 ${isPlayerWinner ? 'winner' : 'loser'}`}
                 >
                   {/* Match Header */}
@@ -266,19 +289,9 @@ export function HistoryCard({ data, loading }: HistoryCardProps) {
                         </span>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-3 text-right">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        disabled={isCreating}
-                        onClick={() => handleCreatePokepast(game)}
-                      >
-                        {isCreating ? 'Creating...' : 'View OTS'}
-                      </Button>
-                      <div>
-                        <p className="text-sm text-gray-400">Winner</p>
-                        <p className="text-white font-medium">{game.winner}</p>
-                      </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-400">Winner</p>
+                      <p className="text-white font-medium">{game.winner}</p>
                     </div>
                   </div>
 
@@ -287,10 +300,16 @@ export function HistoryCard({ data, loading }: HistoryCardProps) {
                     <TeamPanel
                       player={game.player}
                       statusDotClass={isPlayerWinner ? 'bg-green-400' : 'bg-red-400'}
+                      onCreateOts={() => handleCreatePokepast(game, 'player')}
+                      isCreating={isCreatingPlayer}
+                      isDisabled={playerDisabled}
                     />
                     <TeamPanel
                       player={game.opponent}
                       statusDotClass={!isPlayerWinner ? 'bg-green-400' : 'bg-red-400'}
+                      onCreateOts={() => handleCreatePokepast(game, 'opponent')}
+                      isCreating={isCreatingOpponent}
+                      isDisabled={opponentDisabled}
                     />
                   </div>
                 </div>
