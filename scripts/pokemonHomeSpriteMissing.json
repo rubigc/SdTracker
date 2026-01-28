@@ -1,0 +1,337 @@
+[
+  {
+    "name": "floette-eternal",
+    "id": 10061,
+    "spriteUrl": null
+  },
+  {
+    "name": "pikachu-belle",
+    "id": 10081,
+    "spriteUrl": null
+  },
+  {
+    "name": "pikachu-phd",
+    "id": 10083,
+    "spriteUrl": null
+  },
+  {
+    "name": "pikachu-rock-star",
+    "id": 10080,
+    "spriteUrl": null
+  },
+  {
+    "name": "pikachu-cosplay",
+    "id": 10085,
+    "spriteUrl": null
+  },
+  {
+    "name": "pikachu-pop-star",
+    "id": 10082,
+    "spriteUrl": null
+  },
+  {
+    "name": "pikachu-libre",
+    "id": 10084,
+    "spriteUrl": null
+  },
+  {
+    "name": "mimikyu-totem-disguised",
+    "id": 10144,
+    "spriteUrl": null
+  },
+  {
+    "name": "rockruff-own-tempo",
+    "id": 10151,
+    "spriteUrl": null
+  },
+  {
+    "name": "pikachu-starter",
+    "id": 10158,
+    "spriteUrl": null
+  },
+  {
+    "name": "eevee-starter",
+    "id": 10159,
+    "spriteUrl": null
+  },
+  {
+    "name": "koraidon-limited-build",
+    "id": 10264,
+    "spriteUrl": null
+  },
+  {
+    "name": "miraidon-low-power-mode",
+    "id": 10268,
+    "spriteUrl": null
+  },
+  {
+    "name": "miraidon-drive-mode",
+    "id": 10269,
+    "spriteUrl": null
+  },
+  {
+    "name": "koraidon-swimming-build",
+    "id": 10266,
+    "spriteUrl": null
+  },
+  {
+    "name": "miraidon-glide-mode",
+    "id": 10271,
+    "spriteUrl": null
+  },
+  {
+    "name": "koraidon-sprinting-build",
+    "id": 10265,
+    "spriteUrl": null
+  },
+  {
+    "name": "koraidon-gliding-build",
+    "id": 10267,
+    "spriteUrl": null
+  },
+  {
+    "name": "miraidon-aquatic-mode",
+    "id": 10270,
+    "spriteUrl": null
+  },
+  {
+    "name": "clefable-mega",
+    "id": 10278,
+    "spriteUrl": null
+  },
+  {
+    "name": "victreebel-mega",
+    "id": 10279,
+    "spriteUrl": null
+  },
+  {
+    "name": "skarmory-mega",
+    "id": 10284,
+    "spriteUrl": null
+  },
+  {
+    "name": "meganium-mega",
+    "id": 10282,
+    "spriteUrl": null
+  },
+  {
+    "name": "froslass-mega",
+    "id": 10285,
+    "spriteUrl": null
+  },
+  {
+    "name": "emboar-mega",
+    "id": 10286,
+    "spriteUrl": null
+  },
+  {
+    "name": "feraligatr-mega",
+    "id": 10283,
+    "spriteUrl": null
+  },
+  {
+    "name": "starmie-mega",
+    "id": 10280,
+    "spriteUrl": null
+  },
+  {
+    "name": "dragonite-mega",
+    "id": 10281,
+    "spriteUrl": null
+  },
+  {
+    "name": "delphox-mega",
+    "id": 10293,
+    "spriteUrl": null
+  },
+  {
+    "name": "scolipede-mega",
+    "id": 10288,
+    "spriteUrl": null
+  },
+  {
+    "name": "excadrill-mega",
+    "id": 10287,
+    "spriteUrl": null
+  },
+  {
+    "name": "scrafty-mega",
+    "id": 10289,
+    "spriteUrl": null
+  },
+  {
+    "name": "chandelure-mega",
+    "id": 10291,
+    "spriteUrl": null
+  },
+  {
+    "name": "eelektross-mega",
+    "id": 10290,
+    "spriteUrl": null
+  },
+  {
+    "name": "greninja-mega",
+    "id": 10294,
+    "spriteUrl": null
+  },
+  {
+    "name": "chesnaught-mega",
+    "id": 10292,
+    "spriteUrl": null
+  },
+  {
+    "name": "malamar-mega",
+    "id": 10297,
+    "spriteUrl": null
+  },
+  {
+    "name": "pyroar-mega",
+    "id": 10295,
+    "spriteUrl": null
+  },
+  {
+    "name": "dragalge-mega",
+    "id": 10299,
+    "spriteUrl": null
+  },
+  {
+    "name": "barbaracle-mega",
+    "id": 10298,
+    "spriteUrl": null
+  },
+  {
+    "name": "drampa-mega",
+    "id": 10302,
+    "spriteUrl": null
+  },
+  {
+    "name": "floette-mega",
+    "id": 10296,
+    "spriteUrl": null
+  },
+  {
+    "name": "raichu-mega-x",
+    "id": 10304,
+    "spriteUrl": null
+  },
+  {
+    "name": "falinks-mega",
+    "id": 10303,
+    "spriteUrl": null
+  },
+  {
+    "name": "zygarde-mega",
+    "id": 10301,
+    "spriteUrl": null
+  },
+  {
+    "name": "hawlucha-mega",
+    "id": 10300,
+    "spriteUrl": null
+  },
+  {
+    "name": "raichu-mega-y",
+    "id": 10305,
+    "spriteUrl": null
+  },
+  {
+    "name": "chimecho-mega",
+    "id": 10306,
+    "spriteUrl": null
+  },
+  {
+    "name": "lucario-mega-z",
+    "id": 10310,
+    "spriteUrl": null
+  },
+  {
+    "name": "absol-mega-z",
+    "id": 10307,
+    "spriteUrl": null
+  },
+  {
+    "name": "darkrai-mega",
+    "id": 10312,
+    "spriteUrl": null
+  },
+  {
+    "name": "golurk-mega",
+    "id": 10313,
+    "spriteUrl": null
+  },
+  {
+    "name": "meowstic-mega",
+    "id": 10314,
+    "spriteUrl": null
+  },
+  {
+    "name": "heatran-mega",
+    "id": 10311,
+    "spriteUrl": null
+  },
+  {
+    "name": "crabominable-mega",
+    "id": 10315,
+    "spriteUrl": null
+  },
+  {
+    "name": "golisopod-mega",
+    "id": 10316,
+    "spriteUrl": null
+  },
+  {
+    "name": "glimmora-mega",
+    "id": 10321,
+    "spriteUrl": null
+  },
+  {
+    "name": "staraptor-mega",
+    "id": 10308,
+    "spriteUrl": null
+  },
+  {
+    "name": "magearna-mega",
+    "id": 10317,
+    "spriteUrl": null
+  },
+  {
+    "name": "tatsugiri-droopy-mega",
+    "id": 10323,
+    "spriteUrl": null
+  },
+  {
+    "name": "scovillain-mega",
+    "id": 10320,
+    "spriteUrl": null
+  },
+  {
+    "name": "tatsugiri-stretchy-mega",
+    "id": 10324,
+    "spriteUrl": null
+  },
+  {
+    "name": "zeraora-mega",
+    "id": 10319,
+    "spriteUrl": null
+  },
+  {
+    "name": "tatsugiri-curly-mega",
+    "id": 10322,
+    "spriteUrl": null
+  },
+  {
+    "name": "magearna-original-mega",
+    "id": 10318,
+    "spriteUrl": null
+  },
+  {
+    "name": "baxcalibur-mega",
+    "id": 10325,
+    "spriteUrl": null
+  },
+  {
+    "name": "garchomp-mega-z",
+    "id": 10309,
+    "spriteUrl": null
+  }
+]
