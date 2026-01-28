@@ -199,6 +199,60 @@ pub async fn get_tera(
     }
 }
 
+pub async fn get_insights(
+    path: web::Path<i64>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+    db: web::Data<Arc<Mutex<Database>>>,
+) -> impl Responder {
+    let account_id = path.into_inner();
+    let team_id = query.get("team_id").and_then(|s| s.parse::<i64>().ok());
+    let pokemon = query.get("pokemon").map(|s| s.trim()).filter(|s| !s.is_empty()).map(|s| s.to_string());
+
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+
+    let account = match db_guard.get_account_by_id(account_id) {
+        Ok(Some(account)) => account,
+        Ok(None) => {
+            return HttpResponse::NotFound().json(serde_json::json!({
+                "error": "Account not found"
+            }));
+        }
+        Err(e) => {
+            eprintln!("Error fetching account: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to fetch account",
+                "details": e.to_string()
+            }));
+        }
+    };
+
+    match get_insight_stats(
+        &db_guard,
+        &account.name,
+        account.id,
+        team_id,
+        pokemon.as_deref(),
+    ) {
+        Ok(stats) => HttpResponse::Ok().json(stats),
+        Err(e) => {
+            eprintln!("Error getting insights: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to fetch insights",
+                "details": e.to_string()
+            }))
+        }
+    }
+}
+
 pub async fn get_history(
     path: web::Path<i64>,
     query: web::Query<std::collections::HashMap<String, String>>,
@@ -386,6 +440,52 @@ fn get_tera_stats(
     stats.sort_by(|a, b| b.games_played.cmp(&a.games_played));
     
     Ok(stats)
+}
+
+fn get_insight_stats(
+    db: &Database,
+    player_name: &str,
+    account_id: i64,
+    team_id: Option<i64>,
+    pokemon: Option<&str>,
+) -> Result<Vec<InsightStat>, Box<dyn std::error::Error>> {
+    let results = db.get_insight_stats(player_name, account_id, team_id, pokemon, None)?;
+
+    let mut stats: Vec<InsightStat> = results
+        .into_iter()
+        .map(|r| {
+            let win_rate = if r.occurrences > 0 {
+                (r.wins as f64 / r.occurrences as f64) * 100.0
+            } else {
+                0.0
+            };
+
+            InsightStat {
+                insight_id: r.insight_id.clone(),
+                label: insight_label(&r.insight_id).to_string(),
+                pokemon: r.pokemon.clone(),
+                occurrences: r.occurrences,
+                games_played: r.games_played,
+                wins: r.wins,
+                win_rate,
+            }
+        })
+        .collect();
+
+    stats.sort_by(|a, b| b.occurrences.cmp(&a.occurrences));
+    Ok(stats)
+}
+
+fn insight_label(insight_id: &str) -> &'static str {
+    match insight_id {
+        "early_tera" => "Early Tera (turn <= 3)",
+        "switchin_knockoff" => "Switch-ins into Knock Off",
+        "switchin_fakeout" => "Switch-ins into Fake Out",
+        "protect_useless" => "Useless Protects (not targeted)",
+        "protect_consecutive" => "Consecutive Protect attempts",
+        "protect_fail" => "Failed Protect attempts",
+        _ => "Other Insight",
+    }
 }
 
 fn get_history_games(

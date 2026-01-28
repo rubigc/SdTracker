@@ -30,6 +30,16 @@ export interface TeraStat {
   games_played: number;
 }
 
+export interface InsightStat {
+  insight_id: string;
+  label: string;
+  pokemon?: string | null;
+  occurrences: number;
+  games_played: number;
+  wins: number;
+  win_rate: number;
+}
+
 export interface HistoryGame {
   match_id: number;
   game_id: number;

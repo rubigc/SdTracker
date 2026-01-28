@@ -4,6 +4,7 @@ import type {
   LeadComboStat,
   TeraStat, 
   HistoryGame,
+  InsightStat,
   Account,
   CreateAccountRequest,
   UpdateAccountRequest,
@@ -141,6 +142,21 @@ export const api = {
       ? `${API_BASE}/accounts/${accountId}/tera?team_id=${teamId}`
       : `${API_BASE}/accounts/${accountId}/tera`;
     return requestJson<TeraStat[]>(url);
+  },
+
+  getInsights: async (accountId: number, teamId?: number, pokemon?: string): Promise<InsightStat[]> => {
+    const params = new URLSearchParams();
+    if (teamId !== undefined) {
+      params.set('team_id', String(teamId));
+    }
+    if (pokemon) {
+      params.set('pokemon', pokemon);
+    }
+    const suffix = params.toString();
+    const url = suffix
+      ? `${API_BASE}/accounts/${accountId}/insights?${suffix}`
+      : `${API_BASE}/accounts/${accountId}/insights`;
+    return requestJson<InsightStat[]>(url);
   },
   
   getHistory: async (accountId: number, teamId?: number): Promise<HistoryGame[]> => {

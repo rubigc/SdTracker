@@ -5,12 +5,13 @@ import { LeadsCard } from '../components/stats/LeadsCard';
 import { TeraCard } from '../components/stats/TeraCard';
 import { HistoryCard } from '../components/stats/HistoryCard';
 import { MoveStatsCard } from '../components/stats/MoveStatsCard';
+import { InsightsCard } from '../components/stats/InsightsCard';
 import { usePlayerStats, useLeadStats, useLeadComboStats, useTeraStats, useGameHistory } from '../hooks/usePlayerStats';
 import { api } from '../services/api';
 import type { Account, Team } from '../types';
-import { BarChart3, History, Zap, Filter } from 'lucide-react';
+import { BarChart3, History, Zap, Filter, Lightbulb } from 'lucide-react';
 
-type StatsTab = 'stats' | 'history' | 'moves';
+type StatsTab = 'stats' | 'insights' | 'history' | 'moves';
 
 export function StatsDashboard() {
   const [activeTab, setActiveTab] = useState<StatsTab>('stats');
@@ -121,6 +122,14 @@ export function StatsDashboard() {
               <BarChart3 className="w-4 h-4 mr-2 inline" />
               Stats
             </button>
+
+            <button
+              onClick={() => setActiveTab('insights')}
+              className={`tab-button ${activeTab === 'insights' ? 'active' : ''}`}
+            >
+              <Lightbulb className="w-4 h-4 mr-2 inline" />
+              Insights
+            </button>
             
             <button
               onClick={() => setActiveTab('history')}
@@ -158,6 +167,13 @@ export function StatsDashboard() {
             
             {activeTab === 'history' && (
               <HistoryCard data={history} loading={historyLoading} />
+            )}
+
+            {activeTab === 'insights' && selectedAccount && (
+              <InsightsCard
+                accountId={selectedAccount.id}
+                teamId={selectedTeam?.id}
+              />
             )}
             
             {activeTab === 'moves' && selectedAccount && (

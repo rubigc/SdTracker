@@ -33,6 +33,14 @@ export function useTeraStats(accountId?: number, teamId?: number) {
   });
 }
 
+export function useInsights(accountId?: number, teamId?: number, pokemon?: string) {
+  return useQuery({
+    queryKey: ['account', accountId, 'insights', teamId, pokemon],
+    queryFn: () => api.getInsights(accountId as number, teamId, pokemon),
+    enabled: !!accountId,
+  });
+}
+
 export function useGameHistory(accountId?: number, teamId?: number) {
   return useQuery({
     queryKey: ['account', accountId, 'history', teamId],

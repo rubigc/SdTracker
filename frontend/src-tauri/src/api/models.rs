@@ -45,6 +45,17 @@ pub struct TeraStat {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct InsightStat {
+    pub insight_id: String,
+    pub label: String,
+    pub pokemon: Option<String>,
+    pub occurrences: i64,
+    pub games_played: i64,
+    pub wins: i64,
+    pub win_rate: f64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct HistoryGame {
     pub match_id: i64,
     pub game_id: i64,
@@ -211,4 +222,13 @@ pub struct HistoryResult {
     pub opponent_lead: Option<String>,
     pub opponent_tera: Option<String>,
     pub opponent_ots: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct InsightResult {
+    pub insight_id: String,
+    pub pokemon: Option<String>,
+    pub occurrences: i64,
+    pub games_played: i64,
+    pub wins: i64,
 }

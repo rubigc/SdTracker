@@ -22,6 +22,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
             .route("/accounts/{id}/leads", web::get().to(handlers::get_leads))
             .route("/accounts/{id}/leads/combos", web::get().to(handlers::get_lead_combos))
             .route("/accounts/{id}/tera", web::get().to(handlers::get_tera))
+            .route("/accounts/{id}/insights", web::get().to(handlers::get_insights))
             .route("/accounts/{id}/history", web::get().to(handlers::get_history))
             // Team usage endpoints
             .route("/team-usage", web::post().to(handlers::record_team_usage))

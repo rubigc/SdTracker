@@ -1,4 +1,4 @@
-use rusqlite::{Connection, Result, params};
+use rusqlite::{Connection, Result, params, named_params};
 use std::path::PathBuf;
 use std::env;
 use std::fs;
@@ -389,6 +389,195 @@ impl Database {
             rows
         };
 
+        Ok(results)
+    }
+
+    pub fn get_insight_stats(
+        &self,
+        player_name: &str,
+        account_id: i64,
+        team_id: Option<i64>,
+        pokemon: Option<&str>,
+        limit: Option<i64>,
+    ) -> Result<Vec<InsightResult>> {
+        let limit = limit.unwrap_or(10);
+        let mut results = Vec::new();
+
+        results.extend(self.query_mon_insight(
+            player_name,
+            account_id,
+            team_id,
+            pokemon,
+            limit,
+            "early_tera",
+            "rms.tera_used = 1 AND rms.tera_turn IS NOT NULL AND rms.tera_turn <= 3",
+        )?);
+
+        results.extend(self.query_mon_insight(
+            player_name,
+            account_id,
+            team_id,
+            pokemon,
+            limit,
+            "switchin_knockoff",
+            "rms.switchin_into_knock_off_count > 0",
+        )?);
+
+        results.extend(self.query_mon_insight(
+            player_name,
+            account_id,
+            team_id,
+            pokemon,
+            limit,
+            "switchin_fakeout",
+            "rms.switchin_into_fake_out_count > 0",
+        )?);
+
+        results.extend(self.query_mon_insight(
+            player_name,
+            account_id,
+            team_id,
+            pokemon,
+            limit,
+            "protect_useless",
+            "rms.protect_useless_count > 0",
+        )?);
+
+        results.extend(self.query_mon_insight(
+            player_name,
+            account_id,
+            team_id,
+            pokemon,
+            limit,
+            "protect_consecutive",
+            "rms.protect_consecutive_attempt_count > 0",
+        )?);
+
+        results.extend(self.query_mon_insight(
+            player_name,
+            account_id,
+            team_id,
+            pokemon,
+            limit,
+            "protect_fail",
+            "rms.protect_fail_count > 0",
+        )?);
+
+        Ok(results)
+    }
+
+    fn query_mon_insight(
+        &self,
+        player_name: &str,
+        account_id: i64,
+        team_id: Option<i64>,
+        pokemon: Option<&str>,
+        limit: i64,
+        insight_id: &str,
+        condition: &str,
+    ) -> Result<Vec<InsightResult>> {
+        let mut sql = String::from(
+            "WITH player_games AS (\
+                SELECT g.id AS game_id, g.match_uuid, g.game_number, g.winner,\
+                       CASE WHEN m.player1 = :player THEN 'p1' ELSE 'p2' END AS side\
+                FROM games g\
+                JOIN matches m ON m.id = g.match_id",
+        );
+
+        if team_id.is_some() {
+            sql.push_str(" JOIN team_usage tu ON tu.game_id = g.id AND tu.team_id = :team_id AND tu.account_id = :account_id");
+        }
+
+        sql.push_str(" WHERE m.player1 = :player OR m.player2 = :player)");
+
+        sql.push_str(
+            " SELECT rms.mon AS pokemon,\
+                     COUNT(DISTINCT pg.game_id) AS occurrences,\
+                     SUM(CASE WHEN pg.winner = :player THEN 1 ELSE 0 END) AS wins\
+              FROM replay_mon_stats rms\
+              JOIN player_games pg ON rms.replay_id = (pg.match_uuid || ':' || pg.game_number)\
+                                 AND rms.side = pg.side\
+              WHERE ",
+        );
+        sql.push_str(condition);
+
+        if pokemon.is_some() {
+            sql.push_str(" AND LOWER(rms.mon) = LOWER(:pokemon)");
+        }
+
+        sql.push_str(" GROUP BY rms.mon ORDER BY occurrences DESC LIMIT :limit");
+
+        let mut stmt = self.conn.prepare_cached(&sql)?;
+        let rows = match (team_id, pokemon) {
+            (Some(team_id), Some(pokemon)) => stmt.query_map(
+                named_params! {
+                    ":player": player_name,
+                    ":team_id": team_id,
+                    ":account_id": account_id,
+                    ":pokemon": pokemon,
+                    ":limit": limit,
+                },
+                |row| {
+                    Ok(InsightResult {
+                        insight_id: insight_id.to_string(),
+                        pokemon: row.get(0)?,
+                        occurrences: row.get(1)?,
+                        games_played: row.get(1)?,
+                        wins: row.get(2)?,
+                    })
+                },
+            )?,
+            (Some(team_id), None) => stmt.query_map(
+                named_params! {
+                    ":player": player_name,
+                    ":team_id": team_id,
+                    ":account_id": account_id,
+                    ":limit": limit,
+                },
+                |row| {
+                    Ok(InsightResult {
+                        insight_id: insight_id.to_string(),
+                        pokemon: row.get(0)?,
+                        occurrences: row.get(1)?,
+                        games_played: row.get(1)?,
+                        wins: row.get(2)?,
+                    })
+                },
+            )?,
+            (None, Some(pokemon)) => stmt.query_map(
+                named_params! {
+                    ":player": player_name,
+                    ":pokemon": pokemon,
+                    ":limit": limit,
+                },
+                |row| {
+                    Ok(InsightResult {
+                        insight_id: insight_id.to_string(),
+                        pokemon: row.get(0)?,
+                        occurrences: row.get(1)?,
+                        games_played: row.get(1)?,
+                        wins: row.get(2)?,
+                    })
+                },
+            )?,
+            (None, None) => stmt.query_map(
+                named_params! {
+                    ":player": player_name,
+                    ":limit": limit,
+                },
+                |row| {
+                    Ok(InsightResult {
+                        insight_id: insight_id.to_string(),
+                        pokemon: row.get(0)?,
+                        occurrences: row.get(1)?,
+                        games_played: row.get(1)?,
+                        wins: row.get(2)?,
+                    })
+                },
+            )?,
+        };
+
+        let results = rows.collect::<Result<Vec<_>>>()?;
         Ok(results)
     }
 
