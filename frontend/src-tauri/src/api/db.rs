@@ -824,6 +824,11 @@ fn initialize_schema(conn: &Connection) -> Result<()> {
 
     // Add columns for older databases without failing startup.
     let _ = conn.execute("ALTER TABLE game_players ADD COLUMN team_id INTEGER", []);
+    let _ = conn.execute("ALTER TABLE replay_mon_stats ADD COLUMN protect_baited_count INTEGER", []);
+    let _ = conn.execute("ALTER TABLE replay_mon_stats ADD COLUMN protect_useless_count INTEGER", []);
+    let _ = conn.execute("ALTER TABLE replay_mon_stats ADD COLUMN protect_consecutive_attempt_count INTEGER", []);
+    let _ = conn.execute("ALTER TABLE replay_mon_stats ADD COLUMN protect_fail_count INTEGER", []);
+    let _ = conn.execute("ALTER TABLE replay_mon_stats ADD COLUMN protect_consecutive_fail_count INTEGER", []);
 
     Ok(())
 }

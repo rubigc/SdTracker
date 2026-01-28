@@ -1,0 +1,90 @@
+{
+  "protect_moves": [
+    "Protect",
+    "Detect",
+    "Spiky Shield",
+    "Baneful Bunker",
+    "King's Shield",
+    "Obstruct",
+    "Silk Trap",
+    "Wide Guard",
+    "Quick Guard",
+    "Crafty Shield",
+    "Mat Block"
+  ],
+  "setup_moves": [
+    "Swords Dance",
+    "Nasty Plot",
+    "Calm Mind",
+    "Bulk Up",
+    "Dragon Dance",
+    "Quiver Dance",
+    "Shell Smash",
+    "Belly Drum",
+    "Coil",
+    "Iron Defense",
+    "Amnesia",
+    "Agility",
+    "Tail Glow",
+    "Growth",
+    "Work Up"
+  ],
+  "speedcontrol_moves": [
+    "Tailwind",
+    "Trick Room",
+    "Icy Wind",
+    "Electroweb",
+    "Thunder Wave",
+    "Glare",
+    "Scary Face",
+    "Bulldoze",
+    "Rock Tomb",
+    "Sticky Web"
+  ],
+  "pivot_moves": [
+    "U-turn",
+    "Volt Switch",
+    "Flip Turn",
+    "Parting Shot",
+    "Chilly Reception",
+    "Teleport"
+  ],
+  "spread_moves": [
+    "Rock Slide",
+    "Heat Wave",
+    "Dazzling Gleam",
+    "Bleakwind Storm",
+    "Icy Wind",
+    "Electroweb",
+    "Surf",
+    "Muddy Water",
+    "Snarl",
+    "Earthquake",
+    "Discharge",
+    "Sludge Wave",
+    "Hyper Voice",
+    "Expanding Force",
+    "Eruption",
+    "Blizzard",
+    "Land's Wrath"
+  ],
+  "priority_moves": [
+    "Fake Out",
+    "Sucker Punch",
+    "Extreme Speed",
+    "Aqua Jet",
+    "Bullet Punch",
+    "Mach Punch",
+    "Shadow Sneak",
+    "Quick Attack",
+    "Ice Shard",
+    "First Impression",
+    "Accelerock",
+    "Grassy Glide",
+    "Vacuum Wave",
+    "Water Shuriken"
+  ],
+  "knockoff_moves": [
+    "Knock Off"
+  ]
+}

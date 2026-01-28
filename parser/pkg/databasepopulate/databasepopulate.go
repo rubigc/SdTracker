@@ -26,6 +26,11 @@ func initDB(db *sql.DB) error {
 
 	// Add team_id column if missing (ignore errors if it already exists)
 	_, _ = db.Exec(`ALTER TABLE game_players ADD COLUMN team_id INTEGER`)
+	_, _ = db.Exec(`ALTER TABLE replay_mon_stats ADD COLUMN protect_baited_count INTEGER`)
+	_, _ = db.Exec(`ALTER TABLE replay_mon_stats ADD COLUMN protect_useless_count INTEGER`)
+	_, _ = db.Exec(`ALTER TABLE replay_mon_stats ADD COLUMN protect_consecutive_attempt_count INTEGER`)
+	_, _ = db.Exec(`ALTER TABLE replay_mon_stats ADD COLUMN protect_fail_count INTEGER`)
+	_, _ = db.Exec(`ALTER TABLE replay_mon_stats ADD COLUMN protect_consecutive_fail_count INTEGER`)
 
 	return nil
 }
@@ -168,6 +173,11 @@ func AddReplay(replay string) error {
 	}
 	if err := recordAccountData(db, replay, gameId, 2); err != nil {
 		log.Printf("Warning: failed recording account data for player 2: %v", err)
+	}
+
+	replayID := buildReplayID(matchUUID, gameNumber, gameId)
+	if err := recordReplayInstrumentation(db, replay, replayID); err != nil {
+		log.Printf("Warning: failed recording replay instrumentation for %s: %v", replayID, err)
 	}
 
 	return nil
@@ -564,6 +574,262 @@ func recordMoveUsage(db *sql.DB, replay string, gameId int, playerId int, accoun
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func buildReplayID(matchUUID string, gameNumber int, gameId int) string {
+	if matchUUID != "" && gameNumber > 0 {
+		return fmt.Sprintf("%s:%d", matchUUID, gameNumber)
+	}
+	if matchUUID != "" {
+		return matchUUID
+	}
+	if gameId > 0 {
+		return fmt.Sprintf("game:%d", gameId)
+	}
+	return ""
+}
+
+func nullIfEmpty(value string) interface{} {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return value
+}
+
+func nullFloat(value *float64) interface{} {
+	if value == nil {
+		return nil
+	}
+	return *value
+}
+
+func nullInt(value int) interface{} {
+	if value == 0 {
+		return nil
+	}
+	return value
+}
+
+func recordReplayInstrumentation(db *sql.DB, replay string, replayID string) error {
+	if replayID == "" {
+		return fmt.Errorf("missing replay id")
+	}
+
+	instrumentation, err := parsereplay.ParseReplayInstrumentation(replay)
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(`DELETE FROM replay_switchins WHERE replay_id = ?`, replayID); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM replay_mon_stats WHERE replay_id = ?`, replayID); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM replay_side_metrics WHERE replay_id = ?`, replayID); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+
+	switchStmt, err := tx.Prepare(`
+		INSERT INTO replay_switchins (
+			replay_id,
+			side,
+			turn,
+			in_mon,
+			method,
+			opp_active_1,
+			opp_active_2,
+			opp_move_1,
+			opp_move_2,
+			opp_last_move_1,
+			opp_last_move_2,
+			into_knock_off,
+			into_fake_out,
+			into_spread,
+			into_opp_tailwind,
+			into_trick_room,
+			hp_after_percent
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	defer switchStmt.Close()
+
+	for _, event := range instrumentation.SwitchIns {
+		_, err := switchStmt.Exec(
+			replayID,
+			event.Side,
+			event.Turn,
+			event.InMon,
+			event.Method,
+			nullIfEmpty(event.OppActive1),
+			nullIfEmpty(event.OppActive2),
+			nullIfEmpty(event.OppMove1),
+			nullIfEmpty(event.OppMove2),
+			nullIfEmpty(event.OppLastMove1),
+			nullIfEmpty(event.OppLastMove2),
+			boolToInt(event.IntoKnockOff),
+			boolToInt(event.IntoFakeOut),
+			boolToInt(event.IntoSpread),
+			boolToInt(event.IntoOppTailwind),
+			boolToInt(event.IntoTrickRoom),
+			nullFloat(event.HpAfterPercent),
+		)
+		if err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+	}
+
+	monStmt, err := tx.Prepare(`
+		INSERT INTO replay_mon_stats (
+			replay_id,
+			side,
+			mon,
+			turns_active,
+			move_count,
+			attack_count,
+			protect_count,
+			protect_baited_count,
+			protect_useless_count,
+			protect_consecutive_attempt_count,
+			protect_fail_count,
+			protect_consecutive_fail_count,
+			switch_out_count,
+			switch_in_count,
+			pivot_switch_in_count,
+			forced_switch_in_count,
+			setup_count,
+			speedcontrol_count,
+			fake_out_count,
+			intimidate_entry_count,
+			tera_used,
+			tera_turn,
+			switchin_into_knock_off_count,
+			switchin_into_fake_out_count,
+			switchin_into_spread_count,
+			switchin_into_opp_tailwind_count,
+			switchin_into_trick_room_count,
+			avg_hp_after_switchin
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	defer monStmt.Close()
+
+	for _, stats := range instrumentation.MonStats {
+		teraTurn := nullInt(0)
+		if stats.TeraUsed && stats.TeraTurn > 0 {
+			teraTurn = stats.TeraTurn
+		}
+		_, err := monStmt.Exec(
+			replayID,
+			stats.Side,
+			stats.Mon,
+			stats.TurnsActive,
+			stats.MoveCount,
+			stats.AttackCount,
+			stats.ProtectCount,
+			stats.ProtectBaitedCount,
+			stats.ProtectUselessCount,
+			stats.ProtectConsecutiveAttemptCount,
+			stats.ProtectFailedCount,
+			stats.ProtectConsecutiveFailedCount,
+			stats.SwitchOutCount,
+			stats.SwitchInCount,
+			stats.PivotSwitchInCount,
+			stats.ForcedSwitchInCount,
+			stats.SetupCount,
+			stats.SpeedcontrolCount,
+			stats.FakeOutCount,
+			stats.IntimidateEntryCount,
+			boolToInt(stats.TeraUsed),
+			teraTurn,
+			stats.SwitchinIntoKnockOffCount,
+			stats.SwitchinIntoFakeOutCount,
+			stats.SwitchinIntoSpreadCount,
+			stats.SwitchinIntoOppTailwindCount,
+			stats.SwitchinIntoTrickRoomCount,
+			nullFloat(stats.AvgHPAfterSwitchIn),
+		)
+		if err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+	}
+
+	sideStmt, err := tx.Prepare(`
+		INSERT INTO replay_side_metrics (
+			replay_id,
+			side,
+			total_turns,
+			proactivity_rate,
+			aggression_factor,
+			protect_rate,
+			switch_rate,
+			pivot_dependence,
+			early_tera,
+			early_tera_turn,
+			tailwind_set_count,
+			trickroom_set_count,
+			reactive_switch_rate,
+			into_knock_off_rate,
+			into_fake_out_rate,
+			speedcontrol_commit_rate
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`)
+	if err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	defer sideStmt.Close()
+
+	for _, metrics := range instrumentation.SideMetrics {
+		earlyTurn := nullInt(0)
+		if metrics.EarlyTeraTurn > 0 {
+			earlyTurn = metrics.EarlyTeraTurn
+		}
+		_, err := sideStmt.Exec(
+			replayID,
+			metrics.Side,
+			metrics.TotalTurns,
+			metrics.ProactivityRate,
+			metrics.AggressionFactor,
+			metrics.ProtectRate,
+			metrics.SwitchRate,
+			metrics.PivotDependence,
+			boolToInt(metrics.EarlyTera),
+			earlyTurn,
+			metrics.TailwindSetCount,
+			metrics.TrickroomSetCount,
+			metrics.ReactiveSwitchRate,
+			metrics.IntoKnockOffRate,
+			metrics.IntoFakeOutRate,
+			metrics.SpeedcontrolCommitRate,
+		)
+		if err != nil {
+			_ = tx.Rollback()
+			return err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return err
 	}
 
 	return nil
