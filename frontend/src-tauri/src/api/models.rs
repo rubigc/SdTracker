@@ -39,6 +39,7 @@ pub struct TeraStat {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HistoryGame {
+    pub match_id: i64,
     pub game_id: i64,
     pub game_number: i64,
     pub winner: String,
@@ -183,6 +184,7 @@ pub struct StatResult {
 
 #[derive(Debug)]
 pub struct HistoryResult {
+    pub match_id: i64,
     pub game_id: i64,
     pub game_number: i64,
     pub winner: Option<String>,

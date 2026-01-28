@@ -4,6 +4,7 @@ import (
 	"SdTracker/pkg/parsereplay"
 	"database/sql"
 	_ "embed"
+	"fmt"
 	"log"
 	"os"
 	"regexp"
@@ -193,6 +194,117 @@ func normalizeToken(input string) string {
 
 var parenRegex = regexp.MustCompile(`\(([^)]*)\)`)
 
+func looksPackedTeamData(teamData string) bool {
+	trimmed := strings.TrimSpace(teamData)
+	if trimmed == "" {
+		return false
+	}
+	if strings.Contains(trimmed, "\n") || strings.Contains(trimmed, "\r") {
+		return false
+	}
+	return strings.Contains(trimmed, "|") && strings.Contains(trimmed, "]")
+}
+
+func extractPackedTeraType(value string) string {
+	tokens := strings.Split(value, ",")
+	for i := len(tokens) - 1; i >= 0; i-- {
+		token := strings.TrimSpace(tokens[i])
+		if token != "" {
+			return token
+		}
+	}
+	return ""
+}
+
+func unpackPackedTeamData(teamData string) string {
+	var blocks []string
+
+	for _, chunk := range strings.Split(teamData, "]") {
+		trimmed := strings.TrimSpace(chunk)
+		if trimmed == "" {
+			continue
+		}
+
+		parts := strings.Split(trimmed, "|")
+		if len(parts) < 5 {
+			continue
+		}
+
+		name := strings.TrimSpace(parts[0])
+		species := ""
+		if len(parts) > 1 {
+			species = strings.TrimSpace(parts[1])
+		}
+
+		var displayName string
+		switch {
+		case name != "" && species != "" && !strings.EqualFold(name, species):
+			displayName = fmt.Sprintf("%s (%s)", name, species)
+		case species != "":
+			displayName = species
+		case name != "":
+			displayName = name
+		default:
+			continue
+		}
+
+		item := ""
+		if len(parts) > 2 {
+			item = strings.TrimSpace(parts[2])
+		}
+		ability := ""
+		if len(parts) > 3 {
+			ability = strings.TrimSpace(parts[3])
+		}
+		moves := []string{}
+		if len(parts) > 4 {
+			for _, move := range strings.Split(parts[4], ",") {
+				move = strings.TrimSpace(move)
+				if move != "" {
+					moves = append(moves, move)
+				}
+			}
+		}
+		teraType := ""
+		if len(parts) > 11 {
+			teraType = extractPackedTeraType(parts[11])
+		}
+
+		lines := []string{}
+		if item != "" {
+			lines = append(lines, fmt.Sprintf("%s @ %s", displayName, item))
+		} else {
+			lines = append(lines, displayName)
+		}
+		if ability != "" {
+			lines = append(lines, fmt.Sprintf("Ability: %s", ability))
+		}
+		if teraType != "" {
+			lines = append(lines, fmt.Sprintf("Tera Type: %s", teraType))
+		}
+		for _, move := range moves {
+			lines = append(lines, fmt.Sprintf("- %s", move))
+		}
+
+		if len(lines) > 0 {
+			blocks = append(blocks, strings.Join(lines, "\n"))
+		}
+	}
+
+	return strings.Join(blocks, "\n\n")
+}
+
+func normalizeTeamData(teamData string) string {
+	normalized := strings.TrimSpace(strings.ReplaceAll(teamData, "\r\n", "\n"))
+	if normalized == "" {
+		return ""
+	}
+	if looksPackedTeamData(normalized) {
+		return unpackPackedTeamData(normalized)
+	}
+	return normalized
+}
+
 func extractSpecies(header string) string {
 	matches := parenRegex.FindAllStringSubmatch(header, -1)
 	for _, match := range matches {
@@ -258,7 +370,7 @@ func parseTeamData(teamData string) []parsedPokemon {
 }
 
 func buildTeamKey(teamData string) string {
-	team := parseTeamData(teamData)
+	team := parseTeamData(normalizeTeamData(teamData))
 	if len(team) == 0 {
 		return ""
 	}

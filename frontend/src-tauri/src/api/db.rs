@@ -306,7 +306,7 @@ impl Database {
     pub fn get_history(&self, player_name: &str, account_id: i64, team_id: Option<i64>) -> Result<Vec<HistoryResult>> {
         let results = if let Some(team_id) = team_id {
             let mut stmt = self.conn.prepare_cached(
-                "SELECT g.id AS game_id, g.game_number, g.winner,
+                "SELECT g.match_id AS match_id, g.id AS game_id, g.game_number, g.winner,
                        gp.team_pokemon AS player_team, gp.lead_pokemon AS player_lead, gp.tera_used AS player_tera, gp.ots AS player_ots,
                        opp.player_name AS opponent, opp.team_pokemon AS opponent_team, opp.lead_pokemon AS opponent_lead, opp.tera_used AS opponent_tera, opp.ots AS opponent_ots
                  FROM games g
@@ -320,24 +320,25 @@ impl Database {
 
             let rows = stmt.query_map(params![player_name, team_id, account_id], |row| {
                 Ok(HistoryResult {
-                    game_id: row.get(0)?,
-                    game_number: row.get(1)?,
-                    winner: row.get(2)?,
-                    player_team: row.get(3)?,
-                    player_lead: row.get(4)?,
-                    player_tera: row.get(5)?,
-                    player_ots: row.get(6)?,
-                    opponent: row.get(7)?,
-                    opponent_team: row.get(8)?,
-                    opponent_lead: row.get(9)?,
-                    opponent_tera: row.get(10)?,
-                    opponent_ots: row.get(11)?,
+                    match_id: row.get(0)?,
+                    game_id: row.get(1)?,
+                    game_number: row.get(2)?,
+                    winner: row.get(3)?,
+                    player_team: row.get(4)?,
+                    player_lead: row.get(5)?,
+                    player_tera: row.get(6)?,
+                    player_ots: row.get(7)?,
+                    opponent: row.get(8)?,
+                    opponent_team: row.get(9)?,
+                    opponent_lead: row.get(10)?,
+                    opponent_tera: row.get(11)?,
+                    opponent_ots: row.get(12)?,
                 })
             })?.collect::<Result<Vec<_>>>()?;
             rows
         } else {
             let mut stmt = self.conn.prepare_cached(
-                "SELECT g.id AS game_id, g.game_number, g.winner,
+                "SELECT g.match_id AS match_id, g.id AS game_id, g.game_number, g.winner,
                        gp.team_pokemon AS player_team, gp.lead_pokemon AS player_lead, gp.tera_used AS player_tera, gp.ots AS player_ots,
                        opp.player_name AS opponent, opp.team_pokemon AS opponent_team, opp.lead_pokemon AS opponent_lead, opp.tera_used AS opponent_tera, opp.ots AS opponent_ots
                  FROM games g
@@ -350,18 +351,19 @@ impl Database {
 
             let rows = stmt.query_map(params![player_name, player_name], |row| {
                 Ok(HistoryResult {
-                    game_id: row.get(0)?,
-                    game_number: row.get(1)?,
-                    winner: row.get(2)?,
-                    player_team: row.get(3)?,
-                    player_lead: row.get(4)?,
-                    player_tera: row.get(5)?,
-                    player_ots: row.get(6)?,
-                    opponent: row.get(7)?,
-                    opponent_team: row.get(8)?,
-                    opponent_lead: row.get(9)?,
-                    opponent_tera: row.get(10)?,
-                    opponent_ots: row.get(11)?,
+                    match_id: row.get(0)?,
+                    game_id: row.get(1)?,
+                    game_number: row.get(2)?,
+                    winner: row.get(3)?,
+                    player_team: row.get(4)?,
+                    player_lead: row.get(5)?,
+                    player_tera: row.get(6)?,
+                    player_ots: row.get(7)?,
+                    opponent: row.get(8)?,
+                    opponent_team: row.get(9)?,
+                    opponent_lead: row.get(10)?,
+                    opponent_tera: row.get(11)?,
+                    opponent_ots: row.get(12)?,
                 })
             })?.collect::<Result<Vec<_>>>()?;
             rows

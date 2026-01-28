@@ -25,6 +25,7 @@ export interface TeraStat {
 }
 
 export interface HistoryGame {
+  match_id: number;
   game_id: number;
   game_number: number;
   winner: string;
@@ -38,6 +39,8 @@ export interface Player {
   lead?: string | null;
   tera?: string | null;
   ots?: string | null;
+  elo?: number | null;
+  elo_change?: number | null;
 }
 
 // Account Types

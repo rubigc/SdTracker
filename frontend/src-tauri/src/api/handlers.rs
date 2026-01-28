@@ -338,6 +338,7 @@ fn get_history_games(
             };
             
             HistoryGame {
+                match_id: r.match_id,
                 game_id: r.game_id,
                 game_number: r.game_number,
                 winner: r.winner.unwrap_or_else(|| "Unknown".to_string()),
