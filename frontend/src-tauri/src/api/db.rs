@@ -508,76 +508,82 @@ impl Database {
         sql.push_str(" GROUP BY rms.mon ORDER BY occurrences DESC LIMIT :limit");
 
         let mut stmt = self.conn.prepare_cached(&sql)?;
-        let rows = match (team_id, pokemon) {
-            (Some(team_id), Some(pokemon)) => stmt.query_map(
-                named_params! {
-                    ":player": player_name,
-                    ":team_id": team_id,
-                    ":account_id": account_id,
-                    ":pokemon": pokemon,
-                    ":limit": limit,
-                },
-                |row| {
-                    Ok(InsightResult {
-                        insight_id: insight_id.to_string(),
-                        pokemon: row.get(0)?,
-                        occurrences: row.get(1)?,
-                        games_played: row.get(1)?,
-                        wins: row.get(2)?,
-                    })
-                },
-            )?,
-            (Some(team_id), None) => stmt.query_map(
-                named_params! {
-                    ":player": player_name,
-                    ":team_id": team_id,
-                    ":account_id": account_id,
-                    ":limit": limit,
-                },
-                |row| {
-                    Ok(InsightResult {
-                        insight_id: insight_id.to_string(),
-                        pokemon: row.get(0)?,
-                        occurrences: row.get(1)?,
-                        games_played: row.get(1)?,
-                        wins: row.get(2)?,
-                    })
-                },
-            )?,
-            (None, Some(pokemon)) => stmt.query_map(
-                named_params! {
-                    ":player": player_name,
-                    ":pokemon": pokemon,
-                    ":limit": limit,
-                },
-                |row| {
-                    Ok(InsightResult {
-                        insight_id: insight_id.to_string(),
-                        pokemon: row.get(0)?,
-                        occurrences: row.get(1)?,
-                        games_played: row.get(1)?,
-                        wins: row.get(2)?,
-                    })
-                },
-            )?,
-            (None, None) => stmt.query_map(
-                named_params! {
-                    ":player": player_name,
-                    ":limit": limit,
-                },
-                |row| {
-                    Ok(InsightResult {
-                        insight_id: insight_id.to_string(),
-                        pokemon: row.get(0)?,
-                        occurrences: row.get(1)?,
-                        games_played: row.get(1)?,
-                        wins: row.get(2)?,
-                    })
-                },
-            )?,
+        let results = match (team_id, pokemon) {
+            (Some(team_id), Some(pokemon)) => stmt
+                .query_map(
+                    named_params! {
+                        ":player": player_name,
+                        ":team_id": team_id,
+                        ":account_id": account_id,
+                        ":pokemon": pokemon,
+                        ":limit": limit,
+                    },
+                    |row| {
+                        Ok(InsightResult {
+                            insight_id: insight_id.to_string(),
+                            pokemon: row.get(0)?,
+                            occurrences: row.get(1)?,
+                            games_played: row.get(1)?,
+                            wins: row.get(2)?,
+                        })
+                    },
+                )?
+                .collect::<Result<Vec<_>>>()?,
+            (Some(team_id), None) => stmt
+                .query_map(
+                    named_params! {
+                        ":player": player_name,
+                        ":team_id": team_id,
+                        ":account_id": account_id,
+                        ":limit": limit,
+                    },
+                    |row| {
+                        Ok(InsightResult {
+                            insight_id: insight_id.to_string(),
+                            pokemon: row.get(0)?,
+                            occurrences: row.get(1)?,
+                            games_played: row.get(1)?,
+                            wins: row.get(2)?,
+                        })
+                    },
+                )?
+                .collect::<Result<Vec<_>>>()?,
+            (None, Some(pokemon)) => stmt
+                .query_map(
+                    named_params! {
+                        ":player": player_name,
+                        ":pokemon": pokemon,
+                        ":limit": limit,
+                    },
+                    |row| {
+                        Ok(InsightResult {
+                            insight_id: insight_id.to_string(),
+                            pokemon: row.get(0)?,
+                            occurrences: row.get(1)?,
+                            games_played: row.get(1)?,
+                            wins: row.get(2)?,
+                        })
+                    },
+                )?
+                .collect::<Result<Vec<_>>>()?,
+            (None, None) => stmt
+                .query_map(
+                    named_params! {
+                        ":player": player_name,
+                        ":limit": limit,
+                    },
+                    |row| {
+                        Ok(InsightResult {
+                            insight_id: insight_id.to_string(),
+                            pokemon: row.get(0)?,
+                            occurrences: row.get(1)?,
+                            games_played: row.get(1)?,
+                            wins: row.get(2)?,
+                        })
+                    },
+                )?
+                .collect::<Result<Vec<_>>>()?,
         };
-
-        let results = rows.collect::<Result<Vec<_>>>()?;
         Ok(results)
     }
 
