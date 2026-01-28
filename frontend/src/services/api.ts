@@ -1,6 +1,7 @@
 import type { 
   WinrateStats, 
   LeadStat, 
+  LeadComboStat,
   TeraStat, 
   HistoryGame,
   Account,
@@ -126,6 +127,13 @@ export const api = {
       ? `${API_BASE}/accounts/${accountId}/leads?team_id=${teamId}`
       : `${API_BASE}/accounts/${accountId}/leads`;
     return requestJson<LeadStat[]>(url);
+  },
+
+  getLeadComboStats: async (accountId: number, teamId?: number): Promise<LeadComboStat[]> => {
+    const url = teamId
+      ? `${API_BASE}/accounts/${accountId}/leads/combos?team_id=${teamId}`
+      : `${API_BASE}/accounts/${accountId}/leads/combos`;
+    return requestJson<LeadComboStat[]>(url);
   },
   
   getTeraStats: async (accountId: number, teamId?: number): Promise<TeraStat[]> => {

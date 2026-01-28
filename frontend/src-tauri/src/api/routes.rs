@@ -20,6 +20,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
             .route("/pokepaste", web::post().to(handlers::create_pokepaste))
             .route("/accounts/{id}/winrates", web::get().to(handlers::get_winrates))
             .route("/accounts/{id}/leads", web::get().to(handlers::get_leads))
+            .route("/accounts/{id}/leads/combos", web::get().to(handlers::get_lead_combos))
             .route("/accounts/{id}/tera", web::get().to(handlers::get_tera))
             .route("/accounts/{id}/history", web::get().to(handlers::get_history))
             // Team usage endpoints

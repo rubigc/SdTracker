@@ -31,6 +31,13 @@ pub struct LeadStat {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct LeadComboStat {
+    pub pokemon: Vec<String>,
+    pub win_rate: f64,
+    pub games_played: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TeraStat {
     pub pokemon: String,
     pub win_rate: f64,
@@ -178,6 +185,13 @@ pub struct Bo3GameWinrateResult {
 pub struct StatResult {
     pub pokemon: Option<String>,
     pub tera_type: Option<String>,
+    pub total: i64,
+    pub wins: i64,
+}
+
+#[derive(Debug)]
+pub struct ComboStatResult {
+    pub pokemon: Vec<String>,
     pub total: i64,
     pub wins: i64,
 }

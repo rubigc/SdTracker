@@ -114,7 +114,7 @@ const PokemonSlot = ({ pokemon, item }: TeamSlot) => {
           src={itemUrl}
           alt={item ?? 'Item'}
           title={item ?? undefined}
-          className="absolute bottom-0 right-0 h-4 w-4 rounded-sm bg-black/70 p-[1px] shadow"
+          className="absolute bottom-0 right-0 h-4 w-4 rounded-sm bg-black/70 p-px shadow"
           onError={(e) => {
             e.currentTarget.classList.add('hidden');
           }}

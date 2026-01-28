@@ -258,6 +258,95 @@ impl Database {
         Ok(results)
     }
 
+    pub fn get_lead_combo_stats(
+        &self,
+        player_name: &str,
+        account_id: i64,
+        team_id: Option<i64>,
+    ) -> Result<Vec<ComboStatResult>> {
+        let raw_data: Vec<(String, i64)> = if let Some(team_id) = team_id {
+            let mut stmt = self.conn.prepare_cached(
+                "SELECT
+                  gp.lead_pokemon,
+                  CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END AS won
+                 FROM game_players gp
+                 JOIN games g ON gp.game_id = g.id
+                 JOIN team_usage tu ON tu.game_id = gp.game_id AND tu.team_id = ?2 AND tu.account_id = ?3
+                 WHERE gp.player_name = ?1
+                   AND lead_pokemon IS NOT NULL
+                   AND lead_pokemon != ''"
+            )?;
+
+            let rows = stmt.query_map(params![player_name, team_id, account_id], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
+        } else {
+            let mut stmt = self.conn.prepare_cached(
+                "SELECT
+                  lead_pokemon,
+                  CASE WHEN g.winner = gp.player_name THEN 1 ELSE 0 END AS won
+                 FROM game_players gp
+                 JOIN games g ON gp.game_id = g.id
+                 WHERE gp.player_name = ?1
+                   AND lead_pokemon IS NOT NULL
+                   AND lead_pokemon != ''"
+            )?;
+
+            let rows = stmt.query_map(params![player_name], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+            })?.collect::<Result<Vec<_>>>()?;
+            rows
+        };
+
+        let mut combo_stats: std::collections::HashMap<String, (Vec<String>, i64, i64)> = std::collections::HashMap::new();
+
+        for (lead_pokemon, won) in raw_data {
+            let mut names: Vec<String> = lead_pokemon
+                .split(';')
+                .map(|pokemon| pokemon.trim())
+                .filter(|pokemon| !pokemon.is_empty())
+                .map(|pokemon| pokemon.to_string())
+                .collect();
+
+            if names.len() < 2 {
+                continue;
+            }
+
+            names.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+            names.dedup_by(|a, b| a.eq_ignore_ascii_case(b));
+
+            if names.len() < 2 {
+                continue;
+            }
+
+            if names.len() > 2 {
+                names.truncate(2);
+            }
+
+            let key = names
+                .iter()
+                .map(|name| name.to_lowercase())
+                .collect::<Vec<_>>()
+                .join("|");
+
+            let entry = combo_stats.entry(key).or_insert((names.clone(), 0, 0));
+            entry.1 += 1;
+            entry.2 += won;
+        }
+
+        let results: Vec<ComboStatResult> = combo_stats
+            .into_iter()
+            .map(|(_, (pokemon, total, wins))| ComboStatResult {
+                pokemon,
+                total,
+                wins,
+            })
+            .collect();
+
+        Ok(results)
+    }
+
     pub fn get_tera_stats(&self, player_name: &str, account_id: i64, team_id: Option<i64>) -> Result<Vec<StatResult>> {
         let results = if let Some(team_id) = team_id {
             let mut stmt = self.conn.prepare_cached(

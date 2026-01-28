@@ -105,6 +105,53 @@ pub async fn get_leads(
     }
 }
 
+pub async fn get_lead_combos(
+    path: web::Path<i64>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+    db: web::Data<Arc<Mutex<Database>>>,
+) -> impl Responder {
+    let account_id = path.into_inner();
+    let team_id = query.get("team_id").and_then(|s| s.parse::<i64>().ok());
+    
+    let db_guard = match db.lock() {
+        Ok(guard) => guard,
+        Err(e) => {
+            eprintln!("Error locking database: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Database lock error",
+                "details": e.to_string()
+            }));
+        }
+    };
+    
+    let account = match db_guard.get_account_by_id(account_id) {
+        Ok(Some(account)) => account,
+        Ok(None) => {
+            return HttpResponse::NotFound().json(serde_json::json!({
+                "error": "Account not found"
+            }));
+        }
+        Err(e) => {
+            eprintln!("Error fetching account: {}", e);
+            return HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to fetch account",
+                "details": e.to_string()
+            }));
+        }
+    };
+
+    match get_lead_combo_stats(&db_guard, &account.name, account.id, team_id) {
+        Ok(stats) => HttpResponse::Ok().json(stats),
+        Err(e) => {
+            eprintln!("Error getting lead combos: {}", e);
+            HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Failed to fetch lead combo stats",
+                "details": e.to_string()
+            }))
+        }
+    }
+}
+
 pub async fn get_tera(
     path: web::Path<i64>,
     query: web::Query<std::collections::HashMap<String, String>>,
@@ -271,6 +318,37 @@ fn get_lead_stats(
         .collect();
     
     // Sort by games played (descending)
+    stats.sort_by(|a, b| b.games_played.cmp(&a.games_played));
+    
+    Ok(stats)
+}
+
+fn get_lead_combo_stats(
+    db: &Database,
+    player_name: &str,
+    account_id: i64,
+    team_id: Option<i64>,
+) -> Result<Vec<LeadComboStat>, Box<dyn std::error::Error>> {
+    let results = db.get_lead_combo_stats(player_name, account_id, team_id)?;
+    
+    let mut stats: Vec<LeadComboStat> = results
+        .into_iter()
+        .filter(|r| r.pokemon.len() >= 2)
+        .map(|r| {
+            let win_rate = if r.total > 0 {
+                (r.wins as f64 / r.total as f64) * 100.0
+            } else {
+                0.0
+            };
+            
+            LeadComboStat {
+                pokemon: r.pokemon,
+                win_rate,
+                games_played: r.total,
+            }
+        })
+        .collect();
+    
     stats.sort_by(|a, b| b.games_played.cmp(&a.games_played));
     
     Ok(stats)

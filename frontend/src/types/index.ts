@@ -18,6 +18,12 @@ export interface LeadStat {
   games_played: number;
 }
 
+export interface LeadComboStat {
+  pokemon: string[];
+  win_rate: number;
+  games_played: number;
+}
+
 export interface TeraStat {
   pokemon: string;
   win_rate: number;

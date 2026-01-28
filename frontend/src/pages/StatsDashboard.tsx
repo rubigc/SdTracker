@@ -5,7 +5,7 @@ import { LeadsCard } from '../components/stats/LeadsCard';
 import { TeraCard } from '../components/stats/TeraCard';
 import { HistoryCard } from '../components/stats/HistoryCard';
 import { MoveStatsCard } from '../components/stats/MoveStatsCard';
-import { usePlayerStats, useLeadStats, useTeraStats, useGameHistory } from '../hooks/usePlayerStats';
+import { usePlayerStats, useLeadStats, useLeadComboStats, useTeraStats, useGameHistory } from '../hooks/usePlayerStats';
 import { api } from '../services/api';
 import type { Account, Team } from '../types';
 import { BarChart3, History, Zap, Filter } from 'lucide-react';
@@ -19,6 +19,7 @@ export function StatsDashboard() {
   
   const { data: winrates, isLoading: winratesLoading } = usePlayerStats(selectedAccount?.id, selectedTeam?.id);
   const { data: leads, isLoading: leadsLoading } = useLeadStats(selectedAccount?.id, selectedTeam?.id);
+  const { data: leadCombos, isLoading: leadCombosLoading } = useLeadComboStats(selectedAccount?.id, selectedTeam?.id);
   const { data: tera, isLoading: teraLoading } = useTeraStats(selectedAccount?.id, selectedTeam?.id);
   const { data: history, isLoading: historyLoading } = useGameHistory(selectedAccount?.id, selectedTeam?.id);
   
@@ -145,7 +146,12 @@ export function StatsDashboard() {
             {activeTab === 'stats' && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <WinratesCard data={winrates} loading={winratesLoading} />
-                <LeadsCard data={leads} loading={leadsLoading} />
+                <LeadsCard
+                  data={leads}
+                  comboData={leadCombos}
+                  loading={leadsLoading}
+                  comboLoading={leadCombosLoading}
+                />
                 <TeraCard data={tera} loading={teraLoading} />
               </div>
             )}

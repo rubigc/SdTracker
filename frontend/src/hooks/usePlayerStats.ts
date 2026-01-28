@@ -17,6 +17,14 @@ export function useLeadStats(accountId?: number, teamId?: number) {
   });
 }
 
+export function useLeadComboStats(accountId?: number, teamId?: number) {
+  return useQuery({
+    queryKey: ['account', accountId, 'lead-combos', teamId],
+    queryFn: () => api.getLeadComboStats(accountId as number, teamId),
+    enabled: !!accountId,
+  });
+}
+
 export function useTeraStats(accountId?: number, teamId?: number) {
   return useQuery({
     queryKey: ['account', accountId, 'tera', teamId],
