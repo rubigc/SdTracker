@@ -156,7 +156,7 @@ const TeamSummary = ({
           align === 'right' ? 'flex-row-reverse text-right' : 'text-left'
         }`}
       >
-        <div className="min-w-[110px]">
+        <div className="min-w-27.5">
           <p className={`text-sm font-semibold ${highlight ? 'text-emerald-300' : 'text-white'}`}>
             {player.name}
           </p>
